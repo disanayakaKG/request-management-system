@@ -52,11 +52,14 @@ class Database {
     email_logs: []
   };
 
+  private initialized = false;
+
   constructor() {
     this.init();
   }
 
   private init() {
+    if (this.initialized) return;
     try {
       if (fs.existsSync(DB_PATH)) {
         const raw = fs.readFileSync(DB_PATH, 'utf-8');
@@ -86,11 +89,44 @@ class Database {
       } else {
         this.seed();
       }
+      this.initialized = true;
     } catch (error) {
       console.error('Failed to initialize database, resetting...', error);
       this.seed();
+      this.initialized = true;
     }
   }
+
+  public async syncWithMongo() {
+    if (!isMongoConnected()) return;
+    try {
+      const users = await UserModel.find({}).lean();
+      const requests = await RequestModel.find({}).lean();
+      const materials = await MaterialModel.find({}).lean();
+      const tools = await ToolModel.find({}).lean();
+      const logs = await ActivityLogModel.find({}).lean();
+      const notifs = await NotificationModel.find({}).lean();
+      const reqMats = await RequestMaterialModel.find({}).lean();
+      const reqTools = await RequestToolModel.find({}).lean();
+      const txs = await InventoryTransactionModel.find({}).lean();
+
+      if (users.length > 0) this.data.users = users as any;
+      if (requests.length > 0) this.data.requests = requests as any;
+      if (materials.length > 0) this.data.materials = materials as any;
+      if (tools.length > 0) this.data.tools = tools as any;
+      if (logs.length > 0) this.data.activity_logs = logs as any;
+      if (notifs.length > 0) this.data.notifications = notifs as any;
+      if (reqMats.length > 0) this.data.request_materials = reqMats as any;
+      if (reqTools.length > 0) this.data.request_tools = reqTools as any;
+      if (txs.length > 0) this.data.inventory_transactions = txs as any;
+
+      this.initialized = true;
+      console.log('🔄 Database synced successfully with MongoDB Atlas.');
+    } catch (err) {
+      console.error('Error syncing database with MongoDB Atlas:', err);
+    }
+  }
+
 
   private ensureDefaultUsers() {
     const salt = bcryptjs.genSaltSync(10);

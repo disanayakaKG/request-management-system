@@ -1,6 +1,7 @@
 import mongoose from 'mongoose';
 import { config } from '../config/config';
 import { seedMongoData } from './seedMongo';
+import { db } from './db';
 
 export async function connectMongoDB(): Promise<boolean> {
   const uri = config.mongoUri;
@@ -26,12 +27,14 @@ export async function connectMongoDB(): Promise<boolean> {
     console.log('⏳ Connecting to MongoDB Cluster...');
     await mongoose.connect(uri);
     await seedMongoData();
+    await db.syncWithMongo();
     return true;
   } catch (error) {
     console.error('💥 Failed to connect to MongoDB cluster:', error);
     return false;
   }
 }
+
 
 export function getMongoStatus(): { connected: boolean; readyState: number } {
   return {
