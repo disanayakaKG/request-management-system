@@ -38,6 +38,10 @@ export interface Material {
   material_name: string;
   unit: string;
   current_stock: number;
+  minimum_stock_level?: number;
+  location?: string;
+  supplier?: string;
+  description?: string;
   created_at: string;
   updated_at: string;
 }
@@ -47,6 +51,11 @@ export interface Tool {
   tool_id: string;
   tool_name: string;
   available_quantity: number;
+  serial_number?: string;
+  category?: string;
+  location?: string;
+  status?: string;
+  description?: string;
   created_at: string;
   updated_at: string;
 }
@@ -107,6 +116,7 @@ export interface InventoryTransaction {
   action: string;
   performed_by: string;
   created_at: string;
+  type?: string;
 }
 
 export interface Notification {
@@ -144,11 +154,11 @@ export interface EmailLog {
 
 export interface DashboardStats {
   totalRequests: number;
-  pendingInventoryReview: number;
-  pendingAdminApproval: number;
+  pendingInventoryReview?: number;
+  pendingAdminApproval?: number;
   approved: number;
   rejected: number;
   needMoreInfo: number;
   completed: number;
+  pending?: number;
 }
-

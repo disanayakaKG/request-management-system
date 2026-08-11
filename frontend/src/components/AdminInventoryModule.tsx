@@ -361,7 +361,7 @@ export default function AdminInventoryModule({ token, triggerToast, userRole, re
                   </thead>
                   <tbody className="divide-y divide-white/10 text-xs">
                     {materials.map((item) => {
-                      const isLowStock = item.current_stock <= item.minimum_stock_level;
+                      const isLowStock = item.minimum_stock_level !== undefined && item.current_stock <= item.minimum_stock_level;
                       return (
                         <tr key={item.id} className="hover:bg-white/5 transition">
                           <td className="py-3.5 px-5 font-semibold text-white">
@@ -503,7 +503,7 @@ export default function AdminInventoryModule({ token, triggerToast, userRole, re
                                   setToolName(tool.tool_name);
                                   setToolSerial(tool.serial_number || '');
                                   setToolCategory(tool.category || 'Hand Tools');
-                                  setToolStatus(tool.status);
+                                  setToolStatus((tool.status as any) || 'Available');
                                   setToolLocation(tool.location || '');
                                   setToolDescription(tool.description || '');
                                   setShowToolModal(true);
