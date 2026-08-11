@@ -1,0 +1,27 @@
+# Dependencies
+node_modules/
+backend/node_modules/
+frontend/node_modules/
+
+# Environment files (.env contain secrets)
+.env
+backend/.env
+frontend/.env
+*.env.local
+
+# Build output
+dist/
+backend/dist/
+frontend/dist/
+build/
+
+# Local databases & logs
+database.json
+install_log.txt
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# System files
+.DS_Store
+Thumbs.db
