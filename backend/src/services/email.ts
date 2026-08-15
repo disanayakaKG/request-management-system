@@ -22,6 +22,8 @@ function getTransporter() {
   const port = parseInt(portStr, 10) || 2525;
   const user = cleanVal(process.env.SMTP_USER) || cleanVal(config.smtp.user);
   const pass = cleanVal(process.env.SMTP_PASS) || cleanVal(config.smtp.pass);
+  const secureEnv = cleanVal(process.env.SMTP_SECURE);
+  const isSecure = secureEnv !== '' ? secureEnv === 'true' : (port === 465 || config.smtp.secure);
 
   // If no credentials or placeholders, fallback to Virtual Mailbox mode
   if (
@@ -36,12 +38,12 @@ function getTransporter() {
   }
 
   try {
-    console.log(`✉️ Initializing SMTP Transporter for Mailtrap: ${host}:${port}`);
+    console.log(`✉️ Initializing SMTP Transporter: ${host}:${port} (secure: ${isSecure})`);
     transporter = nodemailer.createTransport({
       host,
       port,
-      secure: port === 465,
-      requireTLS: port !== 465,
+      secure: isSecure,
+      requireTLS: !isSecure,
       auth: {
         user,
         pass,
@@ -57,22 +59,69 @@ function getTransporter() {
 
     return transporter;
   } catch (error) {
-    console.error('⚠️ Failed to initialize Mailtrap SMTP transporter:', error);
+    console.error('⚠️ Failed to initialize SMTP transporter:', error);
     transporter = null;
     return null;
   }
 }
 
-export async function verifySmtp(): Promise<{ ok: boolean; configured: boolean; error?: string }> {
+export interface SmtpStatusResult {
+  ok: boolean;
+  configured: boolean;
+  host: string;
+  port: number;
+  user: string;
+  secure: boolean;
+  fromAddress: string;
+  error?: string;
+}
+
+export async function verifySmtp(): Promise<SmtpStatusResult> {
+  const host = cleanVal(process.env.SMTP_HOST) || cleanVal(config.smtp.host) || 'sandbox.smtp.mailtrap.io';
+  const port = parseInt(cleanVal(process.env.SMTP_PORT) || String(config.smtp.port || 2525), 10);
+  const user = cleanVal(process.env.SMTP_USER) || cleanVal(config.smtp.user);
+  const secureEnv = cleanVal(process.env.SMTP_SECURE);
+  const isSecure = secureEnv !== '' ? secureEnv === 'true' : (port === 465 || config.smtp.secure);
+  const fromName = cleanVal(process.env.SMTP_FROM_NAME) || config.smtp.fromName || 'Service Request Management System';
+  const fromEmail = cleanVal(process.env.SMTP_FROM_EMAIL) || config.smtp.fromEmail || 'no-reply@requestsystem.com';
+  const fromAddress = `"${fromName}" <${fromEmail}>`;
+
   const mailTransporter = getTransporter();
   if (!mailTransporter) {
-    return { ok: false, configured: false, error: 'SMTP credentials not configured (running in Virtual Mailbox mode).' };
+    return {
+      ok: false,
+      configured: false,
+      host,
+      port,
+      user: user ? `${user.substring(0, 3)}***` : '(not set)',
+      secure: isSecure,
+      fromAddress,
+      error: 'SMTP credentials not configured (running in Virtual Mailbox fallback mode).'
+    };
   }
+
   try {
     await mailTransporter.verify();
-    return { ok: true, configured: true };
+    return {
+      ok: true,
+      configured: true,
+      host,
+      port,
+      user: `${user.substring(0, 3)}***`,
+      secure: isSecure,
+      fromAddress
+    };
   } catch (error: any) {
-    return { ok: false, configured: true, error: error?.message || String(error) };
+    return {
+      ok: false,
+      configured: true,
+      host,
+      port,
+      user: `${user.substring(0, 3)}***`,
+      secure: isSecure,
+      fromAddress,
+      error: error?.message || String(error)
+    };
   }
 }
 
@@ -99,7 +148,9 @@ async function processEmailQueue() {
     const task = emailQueue.shift();
     if (!task) break;
 
-    const fromAddress = `"Service Request Management System" <no-reply@requestsystem.com>`;
+    const fromName = cleanVal(process.env.SMTP_FROM_NAME) || config.smtp.fromName || 'Service Request Management System';
+    const fromEmail = cleanVal(process.env.SMTP_FROM_EMAIL) || config.smtp.fromEmail || 'no-reply@requestsystem.com';
+    const fromAddress = `"${fromName}" <${fromEmail}>`;
     let success = false;
     let attempts = 0;
     const maxAttempts = 2;

@@ -11,7 +11,8 @@ import {
   X,
   FileText,
   Package,
-  Layers
+  Layers,
+  Mail
 } from 'lucide-react';
 import LoginScreen from './components/LoginScreen';
 import KpiCards from './components/KpiCards';
@@ -20,6 +21,7 @@ import RequestDetail from './components/RequestDetail';
 import RequestModal from './components/RequestModal';
 import AdminReportModule from './components/AdminReportModule';
 import AdminInventoryModule from './components/AdminInventoryModule';
+import AdminSmtpModule from './components/AdminSmtpModule';
 import { Request, DashboardStats, RequestStatus, RequestDepartment, RequestPriority, UserRole } from './types';
 import workshopBg from './assets/images/workshop_login_bg_1784718579517.jpg';
 
@@ -57,7 +59,7 @@ export default function App() {
   // Modals and Toasts
   const [showSubmitModal, setShowSubmitModal] = useState(false);
   const [toasts, setToasts] = useState<Toast[]>([]);
-  const [activeTab, setActiveTab] = useState<'queue' | 'reports' | 'inventory'>('queue');
+  const [activeTab, setActiveTab] = useState<'queue' | 'reports' | 'inventory' | 'smtp'>('queue');
 
   // Show customized toast notifications
   const triggerToast = useCallback((message: string, type: 'success' | 'error' | 'info' = 'success') => {
@@ -401,6 +403,20 @@ export default function App() {
                 <span>Inventory {user.role === 'Admin' ? '(View Only)' : ''}</span>
               </button>
             )}
+            {user.role === 'Admin' && (
+              <button
+                id="btn_tab_smtp"
+                onClick={() => setActiveTab('smtp')}
+                className={`flex items-center space-x-2 py-2 px-4 rounded-xl text-xs font-bold transition cursor-pointer ${
+                  activeTab === 'smtp'
+                    ? 'bg-blue-600 text-white shadow-md shadow-blue-500/30 border border-white/20'
+                    : 'text-slate-300 hover:bg-white/10 hover:text-white'
+                }`}
+              >
+                <Mail className="h-3.5 w-3.5" />
+                <span>SMTP & Email Logs</span>
+              </button>
+            )}
           </div>
         )}
 
@@ -483,6 +499,8 @@ export default function App() {
           <AdminReportModule token={token} adminName={user.name} />
         ) : activeTab === 'inventory' && (user.role === 'Inventory Officer' || user.role === 'Admin') ? (
           <AdminInventoryModule token={token} triggerToast={triggerToast} userRole={user.role} readOnly={user.role === 'Admin'} />
+        ) : activeTab === 'smtp' && user.role === 'Admin' ? (
+          <AdminSmtpModule token={token} triggerToast={triggerToast} />
         ) : null}
       </main>
 

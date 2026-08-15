@@ -16,8 +16,11 @@ if (result.parsed) {
 console.log('📧 Configured SMTP details:', {
   host: cleanEnv(process.env.SMTP_HOST),
   port: cleanEnv(process.env.SMTP_PORT),
+  secure: cleanEnv(process.env.SMTP_SECURE) === 'true',
   user: cleanEnv(process.env.SMTP_USER) ? '***' : '(not set)',
-  pass: cleanEnv(process.env.SMTP_PASS) ? '***' : '(not set)'
+  pass: cleanEnv(process.env.SMTP_PASS) ? '***' : '(not set)',
+  fromName: cleanEnv(process.env.SMTP_FROM_NAME) || 'Service Request Management System',
+  fromEmail: cleanEnv(process.env.SMTP_FROM_EMAIL) || 'no-reply@requestsystem.com'
 });
 
 export const config = {
@@ -26,8 +29,11 @@ export const config = {
   smtp: {
     host: cleanEnv(process.env.SMTP_HOST) || 'sandbox.smtp.mailtrap.io',
     port: parseInt(cleanEnv(process.env.SMTP_PORT) || '2525', 10),
+    secure: cleanEnv(process.env.SMTP_SECURE) === 'true',
     user: cleanEnv(process.env.SMTP_USER) || '449145fc38903d',
     pass: cleanEnv(process.env.SMTP_PASS) || '3757bb1b74e11c',
+    fromName: cleanEnv(process.env.SMTP_FROM_NAME) || 'Service Request Management System',
+    fromEmail: cleanEnv(process.env.SMTP_FROM_EMAIL) || 'no-reply@requestsystem.com'
   },
   appUrl: cleanEnv(process.env.APP_URL) || 'http://localhost:3000',
   mongoUri: cleanEnv(process.env.MONGODB_URI)

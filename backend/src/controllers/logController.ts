@@ -4,6 +4,20 @@ import { AuthenticatedRequest } from '../middleware/auth';
 import { sendTestEmail, verifySmtp } from '../services/email';
 
 /**
+ * GET /api/admin/logs/smtp-status
+ * Checks and verifies live SMTP connection status
+ */
+export async function getSmtpStatus(req: AuthenticatedRequest, res: Response) {
+  try {
+    const smtpStatus = await verifySmtp();
+    return res.status(200).json({ smtpStatus });
+  } catch (error: any) {
+    console.error('Error verifying SMTP status:', error);
+    return res.status(500).json({ message: error?.message || 'Failed to verify SMTP connection status' });
+  }
+}
+
+/**
  * GET /api/admin/logs/email
  * Retrieves all Mailtrap SMTP & Virtual Inbox email dispatch logs
  */

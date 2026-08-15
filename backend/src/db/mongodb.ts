@@ -17,7 +17,7 @@ export async function connectMongoDB(): Promise<boolean> {
     });
 
     mongoose.connection.on('error', (err) => {
-      console.error('❌ MongoDB connection error:', err);
+      // Handled in try/catch block during initial connection
     });
 
     mongoose.connection.on('disconnected', () => {
@@ -29,8 +29,14 @@ export async function connectMongoDB(): Promise<boolean> {
     await seedMongoData();
     await db.syncWithMongo();
     return true;
-  } catch (error) {
-    console.error('💥 Failed to connect to MongoDB cluster:', error);
+  } catch (error: any) {
+    const isDnsErr = error?.code === 'ECONNREFUSED' || error?.message?.includes('querySrv');
+    if (isDnsErr) {
+      console.warn('⚠️ Could not resolve MongoDB Atlas DNS SRV (network/DNS block).');
+    } else {
+      console.error('💥 Failed to connect to MongoDB cluster:', error?.message || error);
+    }
+    console.log('📦 Operating with built-in JSON Database fallback (database.json).');
     return false;
   }
 }

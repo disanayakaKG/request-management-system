@@ -4,7 +4,8 @@ import {
   clearEmailLogs, 
   getActivityLogs, 
   clearActivityLogs, 
-  postTestEmail 
+  postTestEmail,
+  getSmtpStatus
 } from '../controllers/logController';
 import { authenticateUser, authorizeAdmin } from '../middleware/auth';
 
@@ -14,6 +15,7 @@ const router = Router();
 router.use(authenticateUser as any);
 router.use(authorizeAdmin as any);
 
+router.get('/smtp-status', getSmtpStatus as any);
 router.get('/email', getEmailLogs as any);
 router.delete('/email', clearEmailLogs as any);
 
