@@ -4,7 +4,7 @@ import jwt from 'jsonwebtoken';
 import { db } from '../db/db';
 import { config } from '../config/config';
 import { AuthenticatedRequest } from '../middleware/auth';
-import { sendPasswordResetEmail, sendPasswordResetSuccessEmail } from '../services/email';
+import { sendPasswordResetEmail, sendPasswordResetConfirmationEmail } from '../services/emailService';
 
 export async function register(req: AuthenticatedRequest, res: Response) {
   const { name, email, password, role } = req.body;
@@ -233,7 +233,7 @@ export async function resetPassword(req: AuthenticatedRequest, res: Response) {
     });
 
     // Send confirmation email
-    sendPasswordResetSuccessEmail(user).catch(err => {
+    sendPasswordResetConfirmationEmail(user).catch(err => {
       console.error('Failed to send password reset confirmation email:', err);
     });
 

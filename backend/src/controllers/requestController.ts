@@ -3,12 +3,12 @@ import { db } from '../db/db';
 import { AuthenticatedRequest } from '../middleware/auth';
 import { RequestDepartment, RequestPriority, RequestStatus, ALL_DEPARTMENTS } from '../types';
 import { 
-  sendNewRequestNotifications, 
-  sendInventoryReviewedNotifications, 
-  sendAdminDecisionNotifications, 
-  sendUserProvidedInfoNotification, 
-  sendWorkCompletedNotifications 
-} from '../services/email';
+  sendRequestCreatedEmail, 
+  sendInventoryManagerConfirmationEmail, 
+  sendAdminApprovalEmail, 
+  sendRequestCompletedEmail 
+} from '../services/emailService';
+import { sendUserProvidedInfoNotification } from '../services/email';
 
 function getRoleEmails(role: 'Admin' | 'Inventory Officer' | 'User'): string[] {
   const users = db.getUsers().filter(u => u.role === role);
@@ -66,9 +66,10 @@ export async function createRequest(req: AuthenticatedRequest, res: Response) {
       role: user.role
     });
 
-    // Send Mailtrap email notifications to Inventory Officer and User receipt
+    // Send Mailtrap email notifications to User (receipt), Inventory Officer (action required), and Admin (notification)
     const officerEmails = getRoleEmails('Inventory Officer');
-    sendNewRequestNotifications({ name: user.name, email: user.email }, newReq, officerEmails)
+    const adminEmails = getRoleEmails('Admin');
+    sendRequestCreatedEmail({ name: user.name, email: user.email }, newReq, adminEmails, officerEmails)
       .catch(err => console.error('Error sending creation notification email:', err));
 
     return res.status(201).json({
@@ -150,7 +151,7 @@ export async function assignMaterialsAndTools(req: AuthenticatedRequest, res: Re
       const adminEmails = getRoleEmails('Admin');
       const creator = db.findUserById(request.created_by);
       const userObj = creator ? { name: creator.name, email: creator.email } : { name: 'Requester', email: 'user@example.com' };
-      sendInventoryReviewedNotifications(user.name, updated, adminEmails, userObj, assignedMaterials.length, assignedTools.length)
+      sendInventoryManagerConfirmationEmail(user.name, updated, adminEmails, userObj, assignedMaterials.length, assignedTools.length)
         .catch(err => console.error('Error sending inventory review notification email:', err));
     }
 
@@ -320,7 +321,7 @@ export async function updateRequestStatus(req: AuthenticatedRequest, res: Respon
     const creator = db.findUserById(request.created_by);
     if (creator && updated) {
       const officerEmails = getRoleEmails('Inventory Officer');
-      sendAdminDecisionNotifications(user.name, updated, comments || '', { name: creator.name, email: creator.email }, officerEmails)
+      sendAdminApprovalEmail(user.name, updated, comments || '', { name: creator.name, email: creator.email }, officerEmails)
         .catch(err => console.error('Error sending user email notification:', err));
     }
 
@@ -550,7 +551,7 @@ export async function completeRequest(req: AuthenticatedRequest, res: Response) 
     const adminEmails = getRoleEmails('Admin');
     const officerEmails = getRoleEmails('Inventory Officer');
 
-    sendWorkCompletedNotifications({ name: user.name, email: user.email }, updated, adminEmails, officerEmails)
+    sendRequestCompletedEmail({ name: user.name, email: user.email }, updated, adminEmails, officerEmails)
       .catch(err => console.error('Error sending work completed email notifications:', err));
 
     return res.status(200).json({

@@ -493,10 +493,15 @@ export async function sendTestEmail(to: string) {
 }
 
 /**
- * Stage 1: When User creates a request -> Notify Inventory Officer & User
+ * Stage 1: When User creates a request -> Notify Inventory Officer, User & Admin
  */
-export async function sendNewRequestNotifications(user: { name: string; email: string }, req: RequestType, officerEmails: string[]) {
-  const requestLink = `${config.appUrl}/?request=${req.id}`;
+export async function sendNewRequestNotifications(
+  user: { name: string; email: string },
+  req: RequestType,
+  officerEmails: string[],
+  adminEmails: string[] = []
+) {
+  const requestLink = `${config.frontendUrl || config.appUrl}/?request=${req.id}`;
   
   // Priority Badge Config
   let priorityBadge: BadgeConfig = { text: String(req.priority).toUpperCase(), bg: '#f1f5f9', color: '#475569' };
@@ -543,7 +548,44 @@ export async function sendNewRequestNotifications(user: { name: string; email: s
     }).catch(e => console.error(`Error sending email to officer ${officerEmail}:`, e));
   }
 
-  // 2. Receipt to User
+  // 2. Notify Admin
+  if (adminEmails && adminEmails.length > 0) {
+    const adminSubject = `[Notification] New Request #${req.id} Created by ${user.name}`;
+    const adminHtml = renderEnterpriseLayout({
+      badge: { text: 'NEW REQUEST • SYSTEM NOTIFICATION', bg: '#f3e8ff', color: '#6b21a8', border: '#e9d5ff' },
+      title: 'New Request Created in System',
+      subtitle: `Created by ${user.name} (${req.department} Dept)`,
+      bodyHtml: `
+        <p style="margin-top: 0;">Hello Admin,</p>
+        <p>A new service request <strong>"${req.title}"</strong> (ID: #${req.id}) has been created in the system and is currently routed to the Inventory Team for initial resource assessment.</p>
+        
+        ${renderKeyValueTable([
+          { label: 'Request ID', value: `#${req.id}` },
+          { label: 'Title', value: req.title },
+          { label: 'Department', value: req.department },
+          { label: 'Priority', value: req.priority, badge: priorityBadge },
+          { label: 'Status', value: 'Pending Inventory Review' }
+        ])}
+      `,
+      cta: {
+        label: 'View Request Details',
+        url: requestLink,
+        bg: '#7c3aed'
+      }
+    });
+
+    for (const adminEmail of adminEmails) {
+      sendEmail({
+        to: adminEmail,
+        subject: adminSubject,
+        text: `New request #${req.id} created by ${user.name}. Status: Pending Inventory Review.`,
+        html: adminHtml,
+        request_id: req.id
+      }).catch(e => console.error(`Error sending email to admin ${adminEmail}:`, e));
+    }
+  }
+
+  // 3. Receipt to User
   const userSubject = `Request #${req.id} Received - Pending Inventory Review`;
   const userHtml = renderEnterpriseLayout({
     badge: { text: 'REQUEST LOGGED • PENDING REVIEW', bg: '#dbeafe', color: '#1e40af', border: '#bfdbfe' },
@@ -884,26 +926,32 @@ export async function sendWorkCompletedNotifications(
  * Send Password Reset Code / Token Email
  */
 export async function sendPasswordResetEmail(user: User, token: string): Promise<any> {
-  const subject = `🔐 Password Reset Security Code - Service Request System`;
+  const resetLink = `${config.frontendUrl || config.appUrl}/reset-password?token=${encodeURIComponent(token)}&email=${encodeURIComponent(user.email)}`;
+  const subject = `🔐 Password Reset Security Link & Code - Service Request System`;
   const html = renderEnterpriseLayout({
-    badge: { text: 'SECURITY DISPATCH • VERIFICATION CODE', bg: '#dbeafe', color: '#1e40af', border: '#bfdbfe' },
+    badge: { text: 'SECURITY DISPATCH • ACCOUNT RECOVERY', bg: '#dbeafe', color: '#1e40af', border: '#bfdbfe' },
     title: 'Password Reset Request',
-    subtitle: '6-digit security code for account recovery',
+    subtitle: 'Reset your password securely',
     bodyHtml: `
       <p style="margin-top: 0;">Hello <strong>${user.name}</strong>,</p>
       <p>We received a request to reset the password for your account (<strong>${user.email}</strong>).</p>
-      <p>Please use the 6-digit security verification code below to set a new password:</p>
+      <p>Click the button below to open the password reset page, or enter the 6-digit security code manually:</p>
       
       ${renderCodeBlock(token, 'This security code is valid for 15 minutes. Do not share this code with anyone.')}
 
       ${renderCalloutBox('Security Notice', 'If you did not request a password reset, please ignore this email or notify your system administrator immediately.', 'warning')}
-    `
+    `,
+    cta: {
+      label: 'Reset Password Now',
+      url: resetLink,
+      bg: '#2563eb'
+    }
   });
 
   return sendEmail({
     to: user.email,
     subject,
-    text: `Hello ${user.name}, your password reset code is: ${token}. It is valid for 15 minutes.`,
+    text: `Hello ${user.name}, your password reset code is: ${token}. Reset link: ${resetLink}. Valid for 15 minutes.`,
     html
   });
 }
