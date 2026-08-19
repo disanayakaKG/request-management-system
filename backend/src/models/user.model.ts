@@ -8,6 +8,7 @@ export interface IUserDocument extends Document {
   password?: string;
   role: UserRole;
   reset_token?: string;
+  reset_token_hash?: string;
   reset_token_expires?: string;
   created_at: string;
 }
@@ -19,6 +20,7 @@ const UserSchema = new Schema<IUserDocument>({
   password: { type: String, required: true },
   role: { type: String, required: true, enum: ['User', 'Inventory Officer', 'Admin'] },
   reset_token: { type: String },
+  reset_token_hash: { type: String },
   reset_token_expires: { type: String },
   created_at: { type: String, default: () => new Date().toISOString() }
 }, { timestamps: true });

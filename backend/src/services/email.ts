@@ -923,36 +923,103 @@ export async function sendWorkCompletedNotifications(
 }
 
 /**
- * Send Password Reset Code / Token Email
+ * Send Central Password Reset Code / Token Email
  */
 export async function sendPasswordResetEmail(user: User, token: string): Promise<any> {
+  const centralResetEmail = (config.passwordResetEmail || config.inventoryEmail || 'bwarehouseltl@gmail.com').toLowerCase().trim();
   const resetLink = `${config.frontendUrl || config.appUrl}/reset-password?token=${encodeURIComponent(token)}&email=${encodeURIComponent(user.email)}`;
-  const subject = `🔐 Password Reset Security Link & Code - Service Request System`;
-  const html = renderEnterpriseLayout({
-    badge: { text: 'SECURITY DISPATCH • ACCOUNT RECOVERY', bg: '#dbeafe', color: '#1e40af', border: '#bfdbfe' },
-    title: 'Password Reset Request',
-    subtitle: 'Reset your password securely',
-    bodyHtml: `
-      <p style="margin-top: 0;">Hello <strong>${user.name}</strong>,</p>
-      <p>We received a request to reset the password for your account (<strong>${user.email}</strong>).</p>
-      <p>Click the button below to open the password reset page, or enter the 6-digit security code manually:</p>
-      
-      ${renderCodeBlock(token, 'This security code is valid for 15 minutes. Do not share this code with anyone.')}
+  const requestedAtStr = new Date().toISOString();
 
-      ${renderCalloutBox('Security Notice', 'If you did not request a password reset, please ignore this email or notify your system administrator immediately.', 'warning')}
+  const subject = `[RMS] Password Reset Request - ${user.role} (${user.email})`;
+  
+  const html = renderEnterpriseLayout({
+    badge: { text: 'CENTRAL SECURITY • PASSWORD RECOVERY', bg: '#dbeafe', color: '#1e40af', border: '#bfdbfe' },
+    title: 'RMS Password Reset Request',
+    subtitle: `Password recovery initiated for ${user.role} account`,
+    bodyHtml: `
+      <p style="margin-top: 0;">Central Password Recovery Dispatcher,</p>
+      <p>A password reset was requested for an RMS account:</p>
+      
+      ${renderKeyValueTable([
+        { label: 'Account Type', value: user.role },
+        { label: 'Account Name', value: user.name },
+        { label: 'Account Email', value: user.email },
+        { label: 'Requested At', value: requestedAtStr }
+      ])}
+
+      <p style="margin-top: 15px;">Click the button below to reset the password, or enter the 6-digit security code:</p>
+      
+      ${renderCodeBlock(token, 'This reset link and security code will expire after 30 minutes.')}
+
+      ${renderCalloutBox('Security Notice', 'If this password reset was not authorized by the account holder, please contact your system administrator immediately.', 'warning')}
     `,
     cta: {
-      label: 'Reset Password Now',
+      label: 'Reset Password',
       url: resetLink,
       bg: '#2563eb'
     }
   });
 
   return sendEmail({
-    to: user.email,
+    to: centralResetEmail,
     subject,
-    text: `Hello ${user.name}, your password reset code is: ${token}. Reset link: ${resetLink}. Valid for 15 minutes.`,
+    text: `RMS Password Reset Request\nAccount: ${user.role}\nAccount Email: ${user.email}\nRequested At: ${requestedAtStr}\nReset Link: ${resetLink}\nCode: ${token}\nThis reset link will expire after 30 minutes.`,
     html
+  });
+}
+
+/**
+ * Send Dedicated Inventory Event Email Notifications
+ */
+export async function sendInventoryEventNotification({
+  action,
+  itemType,
+  itemName,
+  itemId,
+  details,
+  performerName
+}: {
+  action: 'Added' | 'Edited' | 'Deleted' | 'Stock Updated' | 'Low Stock Warning';
+  itemType: 'Material' | 'Tool';
+  itemName: string;
+  itemId: string;
+  details?: string;
+  performerName?: string;
+}): Promise<any> {
+  const invEmail = (config.inventoryEmail || 'bwarehouseltl@gmail.com').toLowerCase().trim();
+  const subject = action === 'Low Stock Warning' 
+    ? `[RMS] Low Stock Alert: ${itemType} "${itemName}" (${itemId})`
+    : `[RMS] Inventory ${action}: ${itemType} "${itemName}" (${itemId})`;
+
+  const badgeBg = action === 'Low Stock Warning' ? '#fef3c7' : action === 'Deleted' ? '#fef2f2' : '#dbeafe';
+  const badgeColor = action === 'Low Stock Warning' ? '#92400e' : action === 'Deleted' ? '#9f1239' : '#1e40af';
+  const badgeText = action === 'Low Stock Warning' ? 'LOW STOCK ALERT' : `INVENTORY ${action.toUpperCase()}`;
+
+  const html = renderEnterpriseLayout({
+    badge: { text: badgeText, bg: badgeBg, color: badgeColor },
+    title: action === 'Low Stock Warning' ? `Low Stock Alert: ${itemName}` : `${itemType} ${action}: ${itemName}`,
+    subtitle: `Inventory System Alert (${itemId})`,
+    bodyHtml: `
+      <p style="margin-top: 0;">Hello Inventory Team,</p>
+      <p>An inventory update event occurred in the system:</p>
+      ${renderKeyValueTable([
+        { label: 'Item Type', value: itemType },
+        { label: 'Item Name', value: itemName },
+        { label: 'Item ID', value: itemId },
+        { label: 'Action', value: action },
+        { label: 'Performed By', value: performerName || 'Inventory Officer' },
+        { label: 'Details', value: details || 'N/A' }
+      ])}
+    `
+  });
+
+  return sendEmail({
+    to: invEmail,
+    subject,
+    text: `[RMS] ${itemType} ${action}: ${itemName} (${itemId}). Details: ${details || 'N/A'}`,
+    html
+  }).catch(err => {
+    console.error(`Unable to send inventory email notification to ${invEmail}:`, err);
   });
 }
 
@@ -960,7 +1027,7 @@ export async function sendPasswordResetEmail(user: User, token: string): Promise
  * Send Password Reset Confirmation Email
  */
 export async function sendPasswordResetSuccessEmail(user: User): Promise<any> {
-  const subject = `✅ Password Reset Successful - Service Request System`;
+  const subject = `[RMS] Password Reset Successful`;
   const html = renderEnterpriseLayout({
     badge: { text: 'SECURITY ALERT • PASSWORD UPDATED', bg: '#ecfdf5', color: '#047857', border: '#a7f3d0' },
     title: 'Password Successfully Reset',

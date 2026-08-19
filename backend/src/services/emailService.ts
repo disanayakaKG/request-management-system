@@ -6,6 +6,7 @@ import {
   sendWorkCompletedNotifications,
   sendPasswordResetEmail as sendResetEmail,
   sendPasswordResetSuccessEmail as sendResetSuccessEmail,
+  sendInventoryEventNotification,
   verifySmtp,
   sendTestEmail
 } from './email.js';
@@ -86,4 +87,4 @@ export async function sendPasswordResetConfirmationEmail(user: User): Promise<an
   return sendResetSuccessEmail(user);
 }
 
-export { verifySmtp, sendTestEmail };
+export { verifySmtp, sendTestEmail, sendInventoryEventNotification };

@@ -110,7 +110,7 @@ export default function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
         throw new Error(data.message || 'Failed to request password reset code.');
       }
 
-      setSuccess('Reset code dispatched! Check your email or Mailtrap Outbox DB.');
+      setSuccess(data.message || 'Reset notification dispatched to central password recovery email (bwarehouseltl@gmail.com).');
       setForgotStep('reset');
     } catch (err: any) {
       setError(err.message || 'Server error requested code.');
@@ -148,7 +148,8 @@ export default function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
         body: JSON.stringify({
           email: resetEmail,
           token: resetCode,
-          newPassword
+          newPassword,
+          confirmPassword
         })
       });
 
@@ -158,7 +159,7 @@ export default function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
         throw new Error(data.message || 'Failed to reset password.');
       }
 
-      setSuccess('Password reset successful! You can now log in.');
+      setSuccess('Password changed successfully. You can now login with your new password.');
       setTimeout(() => {
         setIsForgotPassword(false);
         setIsLogin(true);
@@ -167,7 +168,7 @@ export default function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
         setResetCode('');
         setNewPassword('');
         setConfirmPassword('');
-      }, 1500);
+      }, 1800);
     } catch (err: any) {
       setError(err.message || 'Error updating password.');
     } finally {
@@ -175,15 +176,29 @@ export default function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
     }
   };
 
+  React.useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const urlToken = urlParams.get('token');
+    const urlEmail = urlParams.get('email');
+    if (urlToken || urlEmail) {
+      setIsForgotPassword(true);
+      setForgotStep('reset');
+      if (urlEmail) setResetEmail(urlEmail);
+      if (urlToken) setResetCode(urlToken);
+    }
+  }, []);
+
   const handleQuickLogin = (role: UserRole) => {
     if (role === 'Admin') {
       setEmail('admin@example.com');
+      setPassword('password123');
     } else if (role === 'Inventory Officer') {
-      setEmail('officer@example.com');
+      setEmail('bwarehouseltl@gmail.com');
+      setPassword('New123456');
     } else {
       setEmail('user@example.com');
+      setPassword('password123');
     }
-    setPassword('password123');
     setIsLogin(true);
   };
 

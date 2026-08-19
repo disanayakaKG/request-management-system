@@ -1,6 +1,7 @@
 import { Response } from 'express';
 import { db } from '../db/db';
 import { AuthenticatedRequest } from '../middleware/auth';
+import { sendInventoryEventNotification } from '../services/emailService';
 
 /**
  * GET /api/materials
@@ -71,6 +72,27 @@ export async function createMaterial(req: AuthenticatedRequest, res: Response) {
       performed_by: req.user?.name || 'System'
     });
 
+    // Dispatch inventory event notification email to bwarehouseltl@gmail.com
+    sendInventoryEventNotification({
+      action: 'Added',
+      itemType: 'Material',
+      itemName: newMat.material_name,
+      itemId: newMat.material_id,
+      details: `Initial stock: ${stockNum} ${unit.trim()}, Location: ${location || 'N/A'}`,
+      performerName: req.user?.name
+    });
+
+    if (newMat.current_stock <= (newMat.minimum_stock_level || 0)) {
+      sendInventoryEventNotification({
+        action: 'Low Stock Warning',
+        itemType: 'Material',
+        itemName: newMat.material_name,
+        itemId: newMat.material_id,
+        details: `Stock level (${newMat.current_stock}) is below or equal to threshold (${newMat.minimum_stock_level}).`,
+        performerName: req.user?.name
+      });
+    }
+
     return res.status(201).json({
       message: 'Material created successfully',
       material: newMat
@@ -127,6 +149,30 @@ export async function updateMaterial(req: AuthenticatedRequest, res: Response) {
     }
 
     const updated = db.updateMaterial(id, updates);
+
+    // Dispatch inventory event notification email to bwarehouseltl@gmail.com
+    if (updated) {
+      sendInventoryEventNotification({
+        action: 'Edited',
+        itemType: 'Material',
+        itemName: updated.material_name,
+        itemId: updated.material_id,
+        details: `Updated stock: ${updated.current_stock} ${updated.unit}, Location: ${updated.location || 'N/A'}`,
+        performerName: req.user?.name
+      });
+
+      if (updated.current_stock <= (updated.minimum_stock_level || 0)) {
+        sendInventoryEventNotification({
+          action: 'Low Stock Warning',
+          itemType: 'Material',
+          itemName: updated.material_name,
+          itemId: updated.material_id,
+          details: `Current stock level (${updated.current_stock}) is below or equal to threshold (${updated.minimum_stock_level}).`,
+          performerName: req.user?.name
+        });
+      }
+    }
+
     return res.status(200).json({
       message: 'Material updated successfully',
       material: updated
@@ -151,6 +197,16 @@ export async function deleteMaterial(req: AuthenticatedRequest, res: Response) {
     }
 
     db.deleteMaterial(id);
+
+    sendInventoryEventNotification({
+      action: 'Deleted',
+      itemType: 'Material',
+      itemName: mat.material_name,
+      itemId: mat.material_id,
+      details: `Material ${mat.material_name} (${mat.material_id}) was deleted from inventory database.`,
+      performerName: req.user?.name
+    });
+
     return res.status(200).json({ message: 'Material deleted successfully' });
   } catch (error) {
     console.error('Delete material error:', error);
@@ -223,6 +279,26 @@ export async function createTool(req: AuthenticatedRequest, res: Response) {
       performed_by: req.user?.name || 'System'
     });
 
+    sendInventoryEventNotification({
+      action: 'Added',
+      itemType: 'Tool',
+      itemName: newTool.tool_name,
+      itemId: newTool.tool_id,
+      details: `Available Quantity: ${qtyNum}, Location: ${location || 'N/A'}, Status: ${status || 'Available'}`,
+      performerName: req.user?.name
+    });
+
+    if (newTool.available_quantity <= 2) {
+      sendInventoryEventNotification({
+        action: 'Low Stock Warning',
+        itemType: 'Tool',
+        itemName: newTool.tool_name,
+        itemId: newTool.tool_id,
+        details: `Available tool quantity (${newTool.available_quantity}) is low.`,
+        performerName: req.user?.name
+      });
+    }
+
     return res.status(201).json({
       message: 'Tool created successfully',
       tool: newTool
@@ -279,6 +355,29 @@ export async function updateTool(req: AuthenticatedRequest, res: Response) {
     }
 
     const updated = db.updateTool(id, updates);
+
+    if (updated) {
+      sendInventoryEventNotification({
+        action: 'Edited',
+        itemType: 'Tool',
+        itemName: updated.tool_name,
+        itemId: updated.tool_id,
+        details: `Available quantity: ${updated.available_quantity}, Location: ${updated.location || 'N/A'}, Status: ${updated.status || 'Available'}`,
+        performerName: req.user?.name
+      });
+
+      if (updated.available_quantity <= 2) {
+        sendInventoryEventNotification({
+          action: 'Low Stock Warning',
+          itemType: 'Tool',
+          itemName: updated.tool_name,
+          itemId: updated.tool_id,
+          details: `Available tool quantity (${updated.available_quantity}) is low.`,
+          performerName: req.user?.name
+        });
+      }
+    }
+
     return res.status(200).json({
       message: 'Tool updated successfully',
       tool: updated
@@ -303,6 +402,16 @@ export async function deleteTool(req: AuthenticatedRequest, res: Response) {
     }
 
     db.deleteTool(id);
+
+    sendInventoryEventNotification({
+      action: 'Deleted',
+      itemType: 'Tool',
+      itemName: tool.tool_name,
+      itemId: tool.tool_id,
+      details: `Tool ${tool.tool_name} (${tool.tool_id}) was deleted from inventory database.`,
+      performerName: req.user?.name
+    });
+
     return res.status(200).json({ message: 'Tool deleted successfully' });
   } catch (error) {
     console.error('Delete tool error:', error);

@@ -366,22 +366,25 @@ class Database {
     return newUser;
   }
 
-  public setResetToken(email: string, token: string, expiresAt: string): boolean {
+  public setResetToken(email: string, token: string, tokenHash: string, expiresAt: string): boolean {
     this.init();
     const user = this.findUserByEmail(email);
     if (!user) return false;
     user.reset_token = token;
+    user.reset_token_hash = tokenHash;
     user.reset_token_expires = expiresAt;
     this.save();
     if (isMongoConnected()) {
-      UserModel.updateOne({ id: user.id }, { reset_token: token, reset_token_expires: expiresAt }).catch(() => {});
+      UserModel.updateOne({ id: user.id }, { reset_token: token, reset_token_hash: tokenHash, reset_token_expires: expiresAt }).catch(() => {});
     }
     return true;
   }
 
   public findUserByResetToken(token: string): User | undefined {
     this.init();
-    return this.data.users.find(u => u.reset_token === token);
+    if (!token) return undefined;
+    const trimmed = token.trim();
+    return this.data.users.find(u => u.reset_token === trimmed || u.reset_token_hash === trimmed);
   }
 
   public resetUserPassword(userId: string, newPasswordHash: string): boolean {
@@ -390,10 +393,11 @@ class Database {
     if (!user) return false;
     user.password = newPasswordHash;
     user.reset_token = undefined;
+    user.reset_token_hash = undefined;
     user.reset_token_expires = undefined;
     this.save();
     if (isMongoConnected()) {
-      UserModel.updateOne({ id: userId }, { password: newPasswordHash, $unset: { reset_token: 1, reset_token_expires: 1 } }).catch(() => {});
+      UserModel.updateOne({ id: userId }, { password: newPasswordHash, $unset: { reset_token: 1, reset_token_hash: 1, reset_token_expires: 1 } }).catch(() => {});
     }
     return true;
   }

@@ -7,6 +7,7 @@ export interface User {
   password?: string; // Optional so we don't expose it in responses
   role: UserRole;
   reset_token?: string;
+  reset_token_hash?: string;
   reset_token_expires?: string;
   created_at: string;
 }
