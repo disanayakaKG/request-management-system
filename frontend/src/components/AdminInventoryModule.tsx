@@ -48,8 +48,8 @@ export default function AdminInventoryModule({ token, triggerToast, userRole, re
   const [showToolModal, setShowToolModal] = useState(false);
   const [editingTool, setEditingTool] = useState<Tool | null>(null);
   const [toolName, setToolName] = useState('');
+  const [toolQuantity, setToolQuantity] = useState('1');
   const [toolSerial, setToolSerial] = useState('');
-  const [toolCategory, setToolCategory] = useState('Hand Tools');
   const [toolStatus, setToolStatus] = useState<'Available' | 'In Use' | 'Under Maintenance'>('Available');
   const [toolLocation, setToolLocation] = useState('');
   const [toolDescription, setToolDescription] = useState('');
@@ -173,10 +173,17 @@ export default function AdminInventoryModule({ token, triggerToast, userRole, re
       return;
     }
 
+    const qty = parseInt(toolQuantity);
+    if (isNaN(qty) || qty < 0) {
+      triggerToast('Tool quantity must be a non-negative number', 'error');
+      return;
+    }
+
     const payload = {
       tool_name: toolName.trim(),
+      available_quantity: qty,
+      quantity: qty,
       serial_number: toolSerial.trim(),
-      category: toolCategory.trim(),
       status: toolStatus,
       location: toolLocation.trim(),
       description: toolDescription.trim()
@@ -380,7 +387,7 @@ export default function AdminInventoryModule({ token, triggerToast, userRole, re
                               {item.current_stock}
                             </span>
                           </td>
-                          <td className="py-3.5 px-4 text-center font-mono text-slate-300 font-bold">{item.minimum_stock_level}</td>
+                          <td className="py-3.5 px-4 text-center font-mono text-slate-300 font-bold">{item.minimum_stock_level ?? 0}</td>
                           {!isReadOnly && (
                             <td className="py-3.5 px-5 text-right">
                               <div className="flex justify-end space-x-1">
@@ -430,7 +437,7 @@ export default function AdminInventoryModule({ token, triggerToast, userRole, re
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search tools by name, category, status..."
+                placeholder="Search tools by name, location, serial number..."
                 className="w-full pl-10 pr-4 py-2.5 bg-slate-900/80 backdrop-blur-md border border-white/20 rounded-2xl text-xs font-medium text-white placeholder-slate-400 focus:ring-2 focus:ring-indigo-400/50 outline-none"
               />
             </div>
@@ -439,8 +446,8 @@ export default function AdminInventoryModule({ token, triggerToast, userRole, re
                 onClick={() => {
                   setEditingTool(null);
                   setToolName('');
+                  setToolQuantity('1');
                   setToolSerial('');
-                  setToolCategory('Hand Tools');
                   setToolStatus('Available');
                   setToolLocation('');
                   setToolDescription('');
@@ -471,58 +478,65 @@ export default function AdminInventoryModule({ token, triggerToast, userRole, re
                   <thead>
                     <tr className="bg-slate-950/80 border-b border-white/10 text-[10px] font-bold text-slate-300 uppercase tracking-wider">
                       <th className="py-3.5 px-5">Tool Name</th>
+                      <th className="py-3.5 px-4 text-center">Quantity</th>
                       <th className="py-3.5 px-4">Serial Number</th>
-                      <th className="py-3.5 px-4">Category</th>
                       <th className="py-3.5 px-4">Location</th>
                       <th className="py-3.5 px-4 text-center">Status</th>
                       {!isReadOnly && <th className="py-3.5 px-5 text-right">Actions</th>}
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-white/10 text-xs">
-                    {tools.map((tool) => (
-                      <tr key={tool.id} className="hover:bg-white/5 transition">
-                        <td className="py-3.5 px-5 font-semibold text-white">{tool.tool_name}</td>
-                        <td className="py-3.5 px-4 font-mono text-slate-300">{tool.serial_number || 'N/A'}</td>
-                        <td className="py-3.5 px-4 text-slate-300">{tool.category}</td>
-                        <td className="py-3.5 px-4 text-slate-300">{tool.location || 'N/A'}</td>
-                        <td className="py-3.5 px-4 text-center">
-                          <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase border ${
-                            tool.status === 'Available' ? 'bg-emerald-500/20 text-emerald-200 border-emerald-400/40' :
-                            tool.status === 'In Use' ? 'bg-blue-500/20 text-blue-200 border-blue-400/40' :
-                            'bg-amber-500/20 text-amber-200 border-amber-400/40'
-                          }`}>
-                            {tool.status}
-                          </span>
-                        </td>
-                        {!isReadOnly && (
-                          <td className="py-3.5 px-5 text-right">
-                            <div className="flex justify-end space-x-1">
-                              <button
-                                onClick={() => {
-                                  setEditingTool(tool);
-                                  setToolName(tool.tool_name);
-                                  setToolSerial(tool.serial_number || '');
-                                  setToolCategory(tool.category || 'Hand Tools');
-                                  setToolStatus((tool.status as any) || 'Available');
-                                  setToolLocation(tool.location || '');
-                                  setToolDescription(tool.description || '');
-                                  setShowToolModal(true);
-                                }}
-                                className="p-1.5 text-slate-300 hover:text-indigo-400 rounded-lg hover:bg-white/10 transition cursor-pointer"
-                              >
-                                <Edit className="h-4 w-4" />
-                              </button>
-                              <button
-                                onClick={() => setDeletingId({ id: tool.id, type: 'tool' })}
-                                className="p-1.5 text-slate-300 hover:text-rose-400 rounded-lg hover:bg-white/10 transition cursor-pointer"
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </button>
-                            </div>
+                    {tools.map((tool) => {
+                      const qty = tool.available_quantity ?? tool.quantity ?? 0;
+                      return (
+                        <tr key={tool.id} className="hover:bg-white/5 transition">
+                          <td className="py-3.5 px-5 font-semibold text-white">{tool.tool_name}</td>
+                          <td className="py-3.5 px-4 text-center">
+                            <span className="px-2.5 py-1 rounded-full font-bold font-mono text-xs bg-indigo-500/20 text-indigo-200 border border-indigo-400/40">
+                              {qty}
+                            </span>
                           </td>
-                        )}
-                      </tr>
-                    ))}
+                          <td className="py-3.5 px-4 font-mono text-slate-300">{tool.serial_number || 'N/A'}</td>
+                          <td className="py-3.5 px-4 text-slate-300">{tool.location || 'N/A'}</td>
+                          <td className="py-3.5 px-4 text-center">
+                            <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase border ${
+                              tool.status === 'Available' ? 'bg-emerald-500/20 text-emerald-200 border-emerald-400/40' :
+                              tool.status === 'In Use' ? 'bg-blue-500/20 text-blue-200 border-blue-400/40' :
+                              'bg-amber-500/20 text-amber-200 border-amber-400/40'
+                            }`}>
+                              {tool.status || 'Available'}
+                            </span>
+                          </td>
+                          {!isReadOnly && (
+                            <td className="py-3.5 px-5 text-right">
+                              <div className="flex justify-end space-x-1">
+                                <button
+                                  onClick={() => {
+                                    setEditingTool(tool);
+                                    setToolName(tool.tool_name);
+                                    setToolQuantity(qty.toString());
+                                    setToolSerial(tool.serial_number || '');
+                                    setToolStatus((tool.status as any) || 'Available');
+                                    setToolLocation(tool.location || '');
+                                    setToolDescription(tool.description || '');
+                                    setShowToolModal(true);
+                                  }}
+                                  className="p-1.5 text-slate-300 hover:text-indigo-400 rounded-lg hover:bg-white/10 transition cursor-pointer"
+                                >
+                                  <Edit className="h-4 w-4" />
+                                </button>
+                                <button
+                                  onClick={() => setDeletingId({ id: tool.id, type: 'tool' })}
+                                  className="p-1.5 text-slate-300 hover:text-rose-400 rounded-lg hover:bg-white/10 transition cursor-pointer"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </button>
+                              </div>
+                            </td>
+                          )}
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
@@ -655,12 +669,12 @@ export default function AdminInventoryModule({ token, triggerToast, userRole, re
               </div>
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <label className="block text-xs font-bold text-slate-200 mb-1">Serial Number</label>
-                  <input type="text" value={toolSerial} onChange={e => setToolSerial(e.target.value)} className="w-full bg-slate-950/80 border border-white/20 rounded-xl p-2.5 text-xs text-white outline-none focus:ring-2 focus:ring-indigo-400/50" />
+                  <label className="block text-xs font-bold text-slate-200 mb-1">Quantity *</label>
+                  <input required type="number" min="0" value={toolQuantity} onChange={e => setToolQuantity(e.target.value)} className="w-full bg-slate-950/80 border border-white/20 rounded-xl p-2.5 text-xs text-white outline-none focus:ring-2 focus:ring-indigo-400/50" />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-slate-200 mb-1">Category</label>
-                  <input type="text" value={toolCategory} onChange={e => setToolCategory(e.target.value)} className="w-full bg-slate-950/80 border border-white/20 rounded-xl p-2.5 text-xs text-white outline-none focus:ring-2 focus:ring-indigo-400/50" />
+                  <label className="block text-xs font-bold text-slate-200 mb-1">Serial Number</label>
+                  <input type="text" value={toolSerial} onChange={e => setToolSerial(e.target.value)} className="w-full bg-slate-950/80 border border-white/20 rounded-xl p-2.5 text-xs text-white outline-none focus:ring-2 focus:ring-indigo-400/50" />
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-2">

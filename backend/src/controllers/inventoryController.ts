@@ -33,7 +33,7 @@ export async function getMaterials(req: AuthenticatedRequest, res: Response) {
  * Create a new material (Inventory Officer & Admin)
  */
 export async function createMaterial(req: AuthenticatedRequest, res: Response) {
-  const { material_name, unit, current_stock } = req.body;
+  const { material_name, unit, current_stock, minimum_stock_level, location, supplier, description } = req.body;
 
   if (!material_name || !material_name.trim()) {
     return res.status(400).json({ message: 'Material name is required' });
@@ -48,11 +48,17 @@ export async function createMaterial(req: AuthenticatedRequest, res: Response) {
     return res.status(400).json({ message: 'Current stock must be a non-negative number' });
   }
 
+  const minStockNum = parseInt(minimum_stock_level ?? 0);
+
   try {
     const newMat = db.createMaterial({
       material_name: material_name.trim(),
       unit: unit.trim(),
-      current_stock: stockNum
+      current_stock: stockNum,
+      minimum_stock_level: isNaN(minStockNum) ? 0 : minStockNum,
+      location: (location || '').trim(),
+      supplier: (supplier || '').trim(),
+      description: (description || '').trim()
     });
 
     db.createInventoryTransaction({
@@ -71,7 +77,7 @@ export async function createMaterial(req: AuthenticatedRequest, res: Response) {
     });
   } catch (error) {
     console.error('Create material error:', error);
-    return res.status(500).json({ message: 'Internal server error' });
+    return res.status(500).json({ message: 'Internal server error creating material' });
   }
 }
 
@@ -81,7 +87,7 @@ export async function createMaterial(req: AuthenticatedRequest, res: Response) {
  */
 export async function updateMaterial(req: AuthenticatedRequest, res: Response) {
   const { id } = req.params;
-  const { material_name, unit, current_stock } = req.body;
+  const { material_name, unit, current_stock, minimum_stock_level, location, supplier, description } = req.body;
 
   try {
     const existing = db.findMaterialById(id);
@@ -92,6 +98,13 @@ export async function updateMaterial(req: AuthenticatedRequest, res: Response) {
     const updates: any = {};
     if (material_name !== undefined) updates.material_name = material_name.trim();
     if (unit !== undefined) updates.unit = unit.trim();
+    if (location !== undefined) updates.location = location.trim();
+    if (supplier !== undefined) updates.supplier = supplier.trim();
+    if (description !== undefined) updates.description = description.trim();
+    if (minimum_stock_level !== undefined) {
+      const minNum = parseInt(minimum_stock_level);
+      updates.minimum_stock_level = isNaN(minNum) ? 0 : minNum;
+    }
     if (current_stock !== undefined) {
       const stockNum = parseInt(current_stock);
       if (isNaN(stockNum) || stockNum < 0) {
@@ -120,7 +133,7 @@ export async function updateMaterial(req: AuthenticatedRequest, res: Response) {
     });
   } catch (error) {
     console.error('Update material error:', error);
-    return res.status(500).json({ message: 'Internal server error' });
+    return res.status(500).json({ message: 'Internal server error updating material' });
   }
 }
 
@@ -141,7 +154,7 @@ export async function deleteMaterial(req: AuthenticatedRequest, res: Response) {
     return res.status(200).json({ message: 'Material deleted successfully' });
   } catch (error) {
     console.error('Delete material error:', error);
-    return res.status(500).json({ message: 'Internal server error' });
+    return res.status(500).json({ message: 'Internal server error deleting material' });
   }
 }
 
@@ -158,7 +171,9 @@ export async function getTools(req: AuthenticatedRequest, res: Response) {
       const searchStr = (search as string).toLowerCase().trim();
       tools = tools.filter(t => 
         t.tool_id.toLowerCase().includes(searchStr) ||
-        t.tool_name.toLowerCase().includes(searchStr)
+        t.tool_name.toLowerCase().includes(searchStr) ||
+        (t.location && t.location.toLowerCase().includes(searchStr)) ||
+        (t.serial_number && t.serial_number.toLowerCase().includes(searchStr))
       );
     }
 
@@ -175,21 +190,27 @@ export async function getTools(req: AuthenticatedRequest, res: Response) {
  * Create a new tool
  */
 export async function createTool(req: AuthenticatedRequest, res: Response) {
-  const { tool_name, available_quantity } = req.body;
+  const { tool_name, available_quantity, quantity, serial_number, serialNumber, location, status, description } = req.body;
 
   if (!tool_name || !tool_name.trim()) {
     return res.status(400).json({ message: 'Tool name is required' });
   }
 
-  const qtyNum = parseInt(available_quantity ?? 0);
+  const rawQty = available_quantity !== undefined ? available_quantity : quantity;
+  const qtyNum = parseInt(rawQty ?? 0);
   if (isNaN(qtyNum) || qtyNum < 0) {
-    return res.status(400).json({ message: 'Available quantity must be a non-negative number' });
+    return res.status(400).json({ message: 'Tool quantity must be a non-negative number' });
   }
 
   try {
     const newTool = db.createTool({
       tool_name: tool_name.trim(),
-      available_quantity: qtyNum
+      available_quantity: qtyNum,
+      quantity: qtyNum,
+      serial_number: (serial_number || serialNumber || '').trim(),
+      location: (location || '').trim(),
+      status: status || 'Available',
+      description: (description || '').trim()
     });
 
     db.createInventoryTransaction({
@@ -208,7 +229,7 @@ export async function createTool(req: AuthenticatedRequest, res: Response) {
     });
   } catch (error) {
     console.error('Create tool error:', error);
-    return res.status(500).json({ message: 'Internal server error' });
+    return res.status(500).json({ message: 'Internal server error creating tool' });
   }
 }
 
@@ -218,7 +239,7 @@ export async function createTool(req: AuthenticatedRequest, res: Response) {
  */
 export async function updateTool(req: AuthenticatedRequest, res: Response) {
   const { id } = req.params;
-  const { tool_name, available_quantity } = req.body;
+  const { tool_name, available_quantity, quantity, serial_number, serialNumber, location, status, description } = req.body;
 
   try {
     const existing = db.findToolById(id);
@@ -228,10 +249,17 @@ export async function updateTool(req: AuthenticatedRequest, res: Response) {
 
     const updates: any = {};
     if (tool_name !== undefined) updates.tool_name = tool_name.trim();
-    if (available_quantity !== undefined) {
-      const qtyNum = parseInt(available_quantity);
+    if (serial_number !== undefined) updates.serial_number = serial_number.trim();
+    if (serialNumber !== undefined) updates.serial_number = serialNumber.trim();
+    if (location !== undefined) updates.location = location.trim();
+    if (status !== undefined) updates.status = status;
+    if (description !== undefined) updates.description = description.trim();
+
+    const rawQty = available_quantity !== undefined ? available_quantity : quantity;
+    if (rawQty !== undefined) {
+      const qtyNum = parseInt(rawQty);
       if (isNaN(qtyNum) || qtyNum < 0) {
-        return res.status(400).json({ message: 'Available quantity must be a non-negative number' });
+        return res.status(400).json({ message: 'Tool quantity must be a non-negative number' });
       }
 
       const diff = qtyNum - existing.available_quantity;
@@ -247,6 +275,7 @@ export async function updateTool(req: AuthenticatedRequest, res: Response) {
         });
       }
       updates.available_quantity = qtyNum;
+      updates.quantity = qtyNum;
     }
 
     const updated = db.updateTool(id, updates);
@@ -256,7 +285,7 @@ export async function updateTool(req: AuthenticatedRequest, res: Response) {
     });
   } catch (error) {
     console.error('Update tool error:', error);
-    return res.status(500).json({ message: 'Internal server error' });
+    return res.status(500).json({ message: 'Internal server error updating tool' });
   }
 }
 
@@ -277,7 +306,7 @@ export async function deleteTool(req: AuthenticatedRequest, res: Response) {
     return res.status(200).json({ message: 'Tool deleted successfully' });
   } catch (error) {
     console.error('Delete tool error:', error);
-    return res.status(500).json({ message: 'Internal server error' });
+    return res.status(500).json({ message: 'Internal server error deleting tool' });
   }
 }
 

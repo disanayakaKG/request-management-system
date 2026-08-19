@@ -7,6 +7,10 @@ export interface IMaterialDocument extends Document {
   material_name: string;
   unit: string;
   current_stock: number;
+  minimum_stock_level?: number;
+  location?: string;
+  supplier?: string;
+  description?: string;
   created_at: string;
   updated_at: string;
 }
@@ -17,6 +21,10 @@ const MaterialSchema = new Schema<IMaterialDocument>({
   material_name: { type: String, required: true },
   unit: { type: String, required: true },
   current_stock: { type: Number, required: true, default: 0 },
+  minimum_stock_level: { type: Number, default: 0 },
+  location: { type: String, default: '' },
+  supplier: { type: String, default: '' },
+  description: { type: String, default: '' },
   created_at: { type: String, default: () => new Date().toISOString() },
   updated_at: { type: String, default: () => new Date().toISOString() }
 }, { timestamps: true });
@@ -29,6 +37,10 @@ export interface IToolDocument extends Document {
   tool_id: string;
   tool_name: string;
   available_quantity: number;
+  serial_number?: string;
+  location?: string;
+  status?: string;
+  description?: string;
   created_at: string;
   updated_at: string;
 }
@@ -38,6 +50,10 @@ const ToolSchema = new Schema<IToolDocument>({
   tool_id: { type: String, required: true, unique: true },
   tool_name: { type: String, required: true },
   available_quantity: { type: Number, required: true, default: 0 },
+  serial_number: { type: String, default: '' },
+  location: { type: String, default: '' },
+  status: { type: String, default: 'Available' },
+  description: { type: String, default: '' },
   created_at: { type: String, default: () => new Date().toISOString() },
   updated_at: { type: String, default: () => new Date().toISOString() }
 }, { timestamps: true });

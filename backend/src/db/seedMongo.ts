@@ -104,6 +104,10 @@ export async function seedMongoData() {
           material_name: 'PVC Cable',
           unit: 'm',
           current_stock: 100,
+          minimum_stock_level: 10,
+          location: 'Store Room A',
+          supplier: 'ABC Suppliers',
+          description: 'Standard PVC Insulated Cable',
           created_at: new Date('2026-07-20T08:00:00Z').toISOString(),
           updated_at: new Date('2026-07-20T08:00:00Z').toISOString()
         },
@@ -113,6 +117,10 @@ export async function seedMongoData() {
           material_name: 'Grease',
           unit: 'Tubes',
           current_stock: 50,
+          minimum_stock_level: 5,
+          location: 'Store Room B',
+          supplier: 'Industrial Oils Co',
+          description: 'High performance lubricant grease',
           created_at: new Date('2026-07-20T08:10:00Z').toISOString(),
           updated_at: new Date('2026-07-20T08:10:00Z').toISOString()
         },
@@ -122,10 +130,21 @@ export async function seedMongoData() {
           material_name: 'Bearing',
           unit: 'pcs',
           current_stock: 30,
+          minimum_stock_level: 5,
+          location: 'Store Room A',
+          supplier: 'BearingTech Ltd',
+          description: 'Heavy duty roller bearing',
           created_at: new Date('2026-07-20T08:15:00Z').toISOString(),
           updated_at: new Date('2026-07-20T08:15:00Z').toISOString()
         }
       ]);
+      console.log('✅ Seeded initial materials in MongoDB Atlas');
+    } else {
+      // Migrate/populate any existing Atlas materials missing new schema fields
+      await MaterialModel.updateMany(
+        { location: { $exists: false } },
+        { $set: { location: 'Store Room A', supplier: 'ABC Suppliers', description: 'Inventory Material Item', minimum_stock_level: 10 } }
+      );
     }
 
     const toolCount = await ToolModel.countDocuments();
@@ -136,6 +155,10 @@ export async function seedMongoData() {
           tool_id: 'TOOL-1001',
           tool_name: 'Multimeter',
           available_quantity: 5,
+          serial_number: 'MM-1001',
+          location: 'Tool Room A',
+          status: 'Available',
+          description: 'Digital Precision Multimeter',
           created_at: new Date('2026-07-20T08:00:00Z').toISOString(),
           updated_at: new Date('2026-07-20T08:00:00Z').toISOString()
         },
@@ -144,6 +167,10 @@ export async function seedMongoData() {
           tool_id: 'TOOL-1002',
           tool_name: 'Clamp Meter',
           available_quantity: 3,
+          serial_number: 'CM-1002',
+          location: 'Tool Room A',
+          status: 'Available',
+          description: 'AC/DC Current Clamp Meter',
           created_at: new Date('2026-07-20T08:05:00Z').toISOString(),
           updated_at: new Date('2026-07-20T08:05:00Z').toISOString()
         },
@@ -152,6 +179,10 @@ export async function seedMongoData() {
           tool_id: 'TOOL-1003',
           tool_name: 'Bearing Puller',
           available_quantity: 2,
+          serial_number: 'BP-1003',
+          location: 'Tool Room B',
+          status: 'Available',
+          description: 'Hydraulic Bearing Puller Set',
           created_at: new Date('2026-07-20T08:10:00Z').toISOString(),
           updated_at: new Date('2026-07-20T08:10:00Z').toISOString()
         },
@@ -160,10 +191,21 @@ export async function seedMongoData() {
           tool_id: 'TOOL-1004',
           tool_name: 'Torque Wrench',
           available_quantity: 4,
+          serial_number: 'TW-1004',
+          location: 'Tool Room A',
+          status: 'Available',
+          description: 'Adjustable Torque Wrench 1/2 inch',
           created_at: new Date('2026-07-20T08:15:00Z').toISOString(),
           updated_at: new Date('2026-07-20T08:15:00Z').toISOString()
         }
       ]);
+      console.log('✅ Seeded initial tools in MongoDB Atlas');
+    } else {
+      // Migrate/populate any existing Atlas tools missing new schema fields
+      await ToolModel.updateMany(
+        { location: { $exists: false } },
+        { $set: { location: 'Tool Room A', serial_number: 'TL-1000', description: 'Workshop Tool', status: 'Available' } }
+      );
     }
   } catch (err) {
     console.error('⚠️ Error seeding MongoDB Atlas data:', err);

@@ -51,8 +51,8 @@ export interface Tool {
   tool_id: string;
   tool_name: string;
   available_quantity: number;
+  quantity?: number;
   serial_number?: string;
-  category?: string;
   location?: string;
   status?: string;
   description?: string;

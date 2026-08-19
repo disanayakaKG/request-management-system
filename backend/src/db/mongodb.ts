@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import dns from 'dns';
 import { config } from '../config/config';
 import { seedMongoData } from './seedMongo';
 import { db } from './db';
@@ -11,13 +12,20 @@ export async function connectMongoDB(): Promise<boolean> {
     return false;
   }
 
+  // Configure public DNS servers for Windows DNS SRV lookup resolution
+  try {
+    dns.setServers(['8.8.8.8', '1.1.1.1', '8.8.4.4']);
+  } catch (e) {
+    console.warn('⚠️ Could not set custom DNS resolvers:', e);
+  }
+
   try {
     mongoose.connection.on('connected', () => {
       console.log('🍃 MongoDB connected successfully.');
     });
 
     mongoose.connection.on('error', (err) => {
-      // Handled in try/catch block during initial connection
+      console.error('⚠️ MongoDB connection error:', err?.message || err);
     });
 
     mongoose.connection.on('disconnected', () => {
@@ -25,7 +33,9 @@ export async function connectMongoDB(): Promise<boolean> {
     });
 
     console.log('⏳ Connecting to MongoDB Cluster...');
-    await mongoose.connect(uri);
+    await mongoose.connect(uri, {
+      serverSelectionTimeoutMS: 10000
+    });
     await seedMongoData();
     await db.syncWithMongo();
     return true;

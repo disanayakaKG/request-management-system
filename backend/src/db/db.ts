@@ -573,7 +573,7 @@ class Database {
     this.data.materials.push(newMat);
     this.save();
     if (isMongoConnected()) {
-      MaterialModel.create(newMat).catch(() => {});
+      MaterialModel.create(newMat).catch(err => console.error('MongoDB sync error (createMaterial):', err));
     }
     return newMat;
   }
@@ -592,7 +592,7 @@ class Database {
     this.data.materials[index] = updated;
     this.save();
     if (isMongoConnected()) {
-      MaterialModel.updateOne({ id }, updated).catch(() => {});
+      MaterialModel.updateOne({ $or: [{ id }, { material_id: id }] }, updated).catch(err => console.error('MongoDB sync error (updateMaterial):', err));
     }
     return updated;
   }
@@ -603,10 +603,12 @@ class Database {
     const index = this.data.materials.findIndex(m => m.id === id || m.material_id === id);
     if (index === -1) return false;
 
+    const targetId = this.data.materials[index].id;
+    const targetMatId = this.data.materials[index].material_id;
     this.data.materials.splice(index, 1);
     this.save();
     if (isMongoConnected()) {
-      MaterialModel.deleteOne({ id }).catch(() => {});
+      MaterialModel.deleteOne({ $or: [{ id: targetId }, { material_id: targetMatId }, { id }] }).catch(err => console.error('MongoDB sync error (deleteMaterial):', err));
     }
     return true;
   }
@@ -645,7 +647,7 @@ class Database {
     this.data.tools.push(newTool);
     this.save();
     if (isMongoConnected()) {
-      ToolModel.create(newTool).catch(() => {});
+      ToolModel.create(newTool).catch(err => console.error('MongoDB sync error (createTool):', err));
     }
     return newTool;
   }
@@ -664,7 +666,7 @@ class Database {
     this.data.tools[index] = updated;
     this.save();
     if (isMongoConnected()) {
-      ToolModel.updateOne({ id }, updated).catch(() => {});
+      ToolModel.updateOne({ $or: [{ id }, { tool_id: id }] }, updated).catch(err => console.error('MongoDB sync error (updateTool):', err));
     }
     return updated;
   }
@@ -675,10 +677,12 @@ class Database {
     const index = this.data.tools.findIndex(t => t.id === id || t.tool_id === id);
     if (index === -1) return false;
 
+    const targetId = this.data.tools[index].id;
+    const targetToolId = this.data.tools[index].tool_id;
     this.data.tools.splice(index, 1);
     this.save();
     if (isMongoConnected()) {
-      ToolModel.deleteOne({ id }).catch(() => {});
+      ToolModel.deleteOne({ $or: [{ id: targetId }, { tool_id: targetToolId }, { id }] }).catch(err => console.error('MongoDB sync error (deleteTool):', err));
     }
     return true;
   }
