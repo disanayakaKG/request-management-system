@@ -7,7 +7,7 @@ import { UserModel } from './models/user.model';
 
 try {
   dns.setServers(['8.8.8.8', '1.1.1.1', '8.8.4.4']);
-} catch (e) {}
+} catch (e) { }
 
 async function resetAllDefaultPasswords() {
   console.log('🔄 Resetting default user credentials in MongoDB Atlas & local database.json...');
@@ -41,7 +41,7 @@ async function resetAllDefaultPasswords() {
     try {
       console.log('⏳ Connecting to MongoDB Atlas...');
       await mongoose.connect(config.mongoUri);
-      
+
       await UserModel.updateOne(
         { email: invEmail },
         { password: invPasswordHash, $unset: { reset_token: 1, reset_token_hash: 1, reset_token_expires: 1 } }

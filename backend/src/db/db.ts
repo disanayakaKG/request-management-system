@@ -562,7 +562,7 @@ class Database {
     return this.data.materials.find(m => m.id === id || m.material_id === id);
   }
 
-  public createMaterial(mat: Omit<Material, 'id' | 'material_id' | 'created_at' | 'updated_at'>): Material {
+  public async createMaterial(mat: Omit<Material, 'id' | 'material_id' | 'created_at' | 'updated_at'>): Promise<Material> {
     this.init();
     if (!this.data.materials) this.data.materials = [];
 
@@ -582,17 +582,27 @@ class Database {
     };
     this.data.materials.push(newMat);
     this.save();
+
     if (isMongoConnected()) {
-      MaterialModel.create(newMat).catch(err => console.error('MongoDB sync error (createMaterial):', err));
+      try {
+        await MaterialModel.create(newMat);
+        console.log(`[DB] Successfully created Material ${newMat.material_id} (${newMat.id}) in MongoDB Atlas`);
+      } catch (err: any) {
+        console.error(`[DB ERROR] Failed to create Material ${newMat.material_id} in MongoDB Atlas:`, err?.message || err);
+        throw err;
+      }
     }
     return newMat;
   }
 
-  public updateMaterial(id: string, updates: Partial<Omit<Material, 'id' | 'material_id' | 'created_at'>>): Material | undefined {
+  public async updateMaterial(id: string, updates: Partial<Omit<Material, 'id' | 'material_id' | 'created_at'>>): Promise<Material | undefined> {
     this.init();
     if (!this.data.materials) this.data.materials = [];
     const index = this.data.materials.findIndex(m => m.id === id || m.material_id === id);
     if (index === -1) return undefined;
+
+    const targetId = this.data.materials[index].id;
+    const targetMatId = this.data.materials[index].material_id;
 
     const updated: Material = {
       ...this.data.materials[index],
@@ -601,13 +611,24 @@ class Database {
     };
     this.data.materials[index] = updated;
     this.save();
+
     if (isMongoConnected()) {
-      MaterialModel.updateOne({ $or: [{ id }, { material_id: id }] }, updated).catch(err => console.error('MongoDB sync error (updateMaterial):', err));
+      try {
+        await MaterialModel.findOneAndUpdate(
+          { $or: [{ id: targetId }, { material_id: targetMatId }, { id }] },
+          { $set: { ...updates, updated_at: updated.updated_at } },
+          { new: true, upsert: true }
+        );
+        console.log(`[DB] Successfully updated Material ${id} in MongoDB Atlas`);
+      } catch (err: any) {
+        console.error(`[DB ERROR] Failed to update Material ${id} in MongoDB Atlas:`, err?.message || err);
+        throw err;
+      }
     }
     return updated;
   }
 
-  public deleteMaterial(id: string): boolean {
+  public async deleteMaterial(id: string): Promise<boolean> {
     this.init();
     if (!this.data.materials) this.data.materials = [];
     const index = this.data.materials.findIndex(m => m.id === id || m.material_id === id);
@@ -617,8 +638,22 @@ class Database {
     const targetMatId = this.data.materials[index].material_id;
     this.data.materials.splice(index, 1);
     this.save();
+
     if (isMongoConnected()) {
-      MaterialModel.deleteOne({ $or: [{ id: targetId }, { material_id: targetMatId }, { id }] }).catch(err => console.error('MongoDB sync error (deleteMaterial):', err));
+      try {
+        const deleteRes = await MaterialModel.deleteMany({
+          $or: [
+            { id: targetId },
+            { material_id: targetMatId },
+            { id },
+            { material_id: id }
+          ]
+        });
+        console.log(`[DB] Deleted ${deleteRes.deletedCount} Material document(s) matching ${id} / ${targetId} / ${targetMatId} from MongoDB Atlas`);
+      } catch (err: any) {
+        console.error(`[DB ERROR] Failed to delete Material ${id} from MongoDB Atlas:`, err?.message || err);
+        throw err;
+      }
     }
     return true;
   }
@@ -636,7 +671,7 @@ class Database {
     return this.data.tools.find(t => t.id === id || t.tool_id === id);
   }
 
-  public createTool(tool: Omit<Tool, 'id' | 'tool_id' | 'created_at' | 'updated_at'>): Tool {
+  public async createTool(tool: Omit<Tool, 'id' | 'tool_id' | 'created_at' | 'updated_at'>): Promise<Tool> {
     this.init();
     if (!this.data.tools) this.data.tools = [];
 
@@ -656,17 +691,27 @@ class Database {
     };
     this.data.tools.push(newTool);
     this.save();
+
     if (isMongoConnected()) {
-      ToolModel.create(newTool).catch(err => console.error('MongoDB sync error (createTool):', err));
+      try {
+        await ToolModel.create(newTool);
+        console.log(`[DB] Successfully created Tool ${newTool.tool_id} (${newTool.id}) in MongoDB Atlas`);
+      } catch (err: any) {
+        console.error(`[DB ERROR] Failed to create Tool ${newTool.tool_id} in MongoDB Atlas:`, err?.message || err);
+        throw err;
+      }
     }
     return newTool;
   }
 
-  public updateTool(id: string, updates: Partial<Omit<Tool, 'id' | 'tool_id' | 'created_at'>>): Tool | undefined {
+  public async updateTool(id: string, updates: Partial<Omit<Tool, 'id' | 'tool_id' | 'created_at'>>): Promise<Tool | undefined> {
     this.init();
     if (!this.data.tools) this.data.tools = [];
     const index = this.data.tools.findIndex(t => t.id === id || t.tool_id === id);
     if (index === -1) return undefined;
+
+    const targetId = this.data.tools[index].id;
+    const targetToolId = this.data.tools[index].tool_id;
 
     const updated: Tool = {
       ...this.data.tools[index],
@@ -675,13 +720,24 @@ class Database {
     };
     this.data.tools[index] = updated;
     this.save();
+
     if (isMongoConnected()) {
-      ToolModel.updateOne({ $or: [{ id }, { tool_id: id }] }, updated).catch(err => console.error('MongoDB sync error (updateTool):', err));
+      try {
+        await ToolModel.findOneAndUpdate(
+          { $or: [{ id: targetId }, { tool_id: targetToolId }, { id }] },
+          { $set: { ...updates, updated_at: updated.updated_at } },
+          { new: true, upsert: true }
+        );
+        console.log(`[DB] Successfully updated Tool ${id} in MongoDB Atlas`);
+      } catch (err: any) {
+        console.error(`[DB ERROR] Failed to update Tool ${id} in MongoDB Atlas:`, err?.message || err);
+        throw err;
+      }
     }
     return updated;
   }
 
-  public deleteTool(id: string): boolean {
+  public async deleteTool(id: string): Promise<boolean> {
     this.init();
     if (!this.data.tools) this.data.tools = [];
     const index = this.data.tools.findIndex(t => t.id === id || t.tool_id === id);
@@ -691,8 +747,22 @@ class Database {
     const targetToolId = this.data.tools[index].tool_id;
     this.data.tools.splice(index, 1);
     this.save();
+
     if (isMongoConnected()) {
-      ToolModel.deleteOne({ $or: [{ id: targetId }, { tool_id: targetToolId }, { id }] }).catch(err => console.error('MongoDB sync error (deleteTool):', err));
+      try {
+        const deleteRes = await ToolModel.deleteMany({
+          $or: [
+            { id: targetId },
+            { tool_id: targetToolId },
+            { id },
+            { tool_id: id }
+          ]
+        });
+        console.log(`[DB] Deleted ${deleteRes.deletedCount} Tool document(s) matching ${id} / ${targetId} / ${targetToolId} from MongoDB Atlas`);
+      } catch (err: any) {
+        console.error(`[DB ERROR] Failed to delete Tool ${id} from MongoDB Atlas:`, err?.message || err);
+        throw err;
+      }
     }
     return true;
   }
@@ -722,7 +792,7 @@ class Database {
 
     const reqTools = this.data.request_tools.filter(rt => rt.request_id === requestId);
     return reqTools.map(rt => {
-      const tool = this.data.tools.find(t => t.id === rt.tool_id || t.tool_id === rt.tool_id);
+      const tool = this.data.tools.find(t => t.id === rt.id || t.tool_id === rt.tool_id);
       return {
         ...rt,
         tool_name: tool ? tool.tool_name : 'Unknown Tool',
@@ -731,17 +801,17 @@ class Database {
     });
   }
 
-  public assignMaterialsAndTools(
-    requestId: string, 
-    materials: { material_id: string; quantity: number }[], 
+  public assignMaterialsAndToolsToRequest(
+    requestId: string,
+    materials: { material_id: string; quantity: number }[],
     tools: { tool_id: string; quantity: number }[],
     assignedBy: string
-  ) {
+  ): void {
     this.init();
     if (!this.data.request_materials) this.data.request_materials = [];
     if (!this.data.request_tools) this.data.request_tools = [];
 
-    // Clear previous assignments for this request
+    // Remove existing assignments for this request
     this.data.request_materials = this.data.request_materials.filter(rm => rm.request_id !== requestId);
     this.data.request_tools = this.data.request_tools.filter(rt => rt.request_id !== requestId);
 
@@ -790,7 +860,7 @@ class Database {
     return this.data.inventory_transactions;
   }
 
-  public createInventoryTransaction(transaction: Omit<InventoryTransaction, 'id' | 'created_at'>): InventoryTransaction {
+  public async createInventoryTransaction(transaction: Omit<InventoryTransaction, 'id' | 'created_at'>): Promise<InventoryTransaction> {
     this.init();
     if (!this.data.inventory_transactions) this.data.inventory_transactions = [];
 
@@ -802,7 +872,12 @@ class Database {
     this.data.inventory_transactions.push(newTx);
     this.save();
     if (isMongoConnected()) {
-      InventoryTransactionModel.create(newTx).catch(() => {});
+      try {
+        await InventoryTransactionModel.create(newTx);
+        console.log(`[DB] Successfully created InventoryTransaction ${newTx.id} in MongoDB Atlas`);
+      } catch (err: any) {
+        console.error(`[DB ERROR] Failed to create InventoryTransaction in MongoDB Atlas:`, err?.message || err);
+      }
     }
     return newTx;
   }

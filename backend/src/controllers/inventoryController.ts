@@ -52,7 +52,7 @@ export async function createMaterial(req: AuthenticatedRequest, res: Response) {
   const minStockNum = parseInt(minimum_stock_level ?? 0);
 
   try {
-    const newMat = db.createMaterial({
+    const newMat = await db.createMaterial({
       material_name: material_name.trim(),
       unit: unit.trim(),
       current_stock: stockNum,
@@ -62,7 +62,7 @@ export async function createMaterial(req: AuthenticatedRequest, res: Response) {
       description: (description || '').trim()
     });
 
-    db.createInventoryTransaction({
+    await db.createInventoryTransaction({
       request_id: 'SYSTEM',
       item_type: 'Material',
       item_id: newMat.material_id,
@@ -71,6 +71,8 @@ export async function createMaterial(req: AuthenticatedRequest, res: Response) {
       action: 'Initial Stock Addition',
       performed_by: req.user?.name || 'System'
     });
+
+    console.log(`[API] Created Material ${newMat.material_id} (${newMat.id}) - Name: "${newMat.material_name}", Stock: ${newMat.current_stock}, Location: "${newMat.location}"`);
 
     // Dispatch inventory event notification email to bwarehouseltl@gmail.com
     sendInventoryEventNotification({
@@ -97,9 +99,9 @@ export async function createMaterial(req: AuthenticatedRequest, res: Response) {
       message: 'Material created successfully',
       material: newMat
     });
-  } catch (error) {
-    console.error('Create material error:', error);
-    return res.status(500).json({ message: 'Internal server error creating material' });
+  } catch (error: any) {
+    console.error('Create material error:', error?.message || error);
+    return res.status(500).json({ message: error?.message || 'Internal server error creating material' });
   }
 }
 
@@ -135,7 +137,7 @@ export async function updateMaterial(req: AuthenticatedRequest, res: Response) {
       
       const diff = stockNum - existing.current_stock;
       if (diff !== 0) {
-        db.createInventoryTransaction({
+        await db.createInventoryTransaction({
           request_id: 'SYSTEM',
           item_type: 'Material',
           item_id: existing.material_id,
@@ -148,10 +150,12 @@ export async function updateMaterial(req: AuthenticatedRequest, res: Response) {
       updates.current_stock = stockNum;
     }
 
-    const updated = db.updateMaterial(id, updates);
+    const updated = await db.updateMaterial(id, updates);
 
-    // Dispatch inventory event notification email to bwarehouseltl@gmail.com
     if (updated) {
+      console.log(`[API] Updated Material ${id} (${updated.material_id}) - Stock: ${updated.current_stock}, Location: "${updated.location}"`);
+
+      // Dispatch inventory event notification email to bwarehouseltl@gmail.com
       sendInventoryEventNotification({
         action: 'Edited',
         itemType: 'Material',
@@ -177,9 +181,9 @@ export async function updateMaterial(req: AuthenticatedRequest, res: Response) {
       message: 'Material updated successfully',
       material: updated
     });
-  } catch (error) {
-    console.error('Update material error:', error);
-    return res.status(500).json({ message: 'Internal server error updating material' });
+  } catch (error: any) {
+    console.error('Update material error:', error?.message || error);
+    return res.status(500).json({ message: error?.message || 'Internal server error updating material' });
   }
 }
 
@@ -196,7 +200,8 @@ export async function deleteMaterial(req: AuthenticatedRequest, res: Response) {
       return res.status(404).json({ message: 'Material not found' });
     }
 
-    db.deleteMaterial(id);
+    await db.deleteMaterial(id);
+    console.log(`[API] Deleted Material ${id} (${mat.material_id})`);
 
     sendInventoryEventNotification({
       action: 'Deleted',
@@ -208,9 +213,9 @@ export async function deleteMaterial(req: AuthenticatedRequest, res: Response) {
     });
 
     return res.status(200).json({ message: 'Material deleted successfully' });
-  } catch (error) {
-    console.error('Delete material error:', error);
-    return res.status(500).json({ message: 'Internal server error deleting material' });
+  } catch (error: any) {
+    console.error('Delete material error:', error?.message || error);
+    return res.status(500).json({ message: error?.message || 'Internal server error deleting material' });
   }
 }
 
@@ -259,7 +264,7 @@ export async function createTool(req: AuthenticatedRequest, res: Response) {
   }
 
   try {
-    const newTool = db.createTool({
+    const newTool = await db.createTool({
       tool_name: tool_name.trim(),
       available_quantity: qtyNum,
       quantity: qtyNum,
@@ -269,7 +274,7 @@ export async function createTool(req: AuthenticatedRequest, res: Response) {
       description: (description || '').trim()
     });
 
-    db.createInventoryTransaction({
+    await db.createInventoryTransaction({
       request_id: 'SYSTEM',
       item_type: 'Tool',
       item_id: newTool.tool_id,
@@ -278,6 +283,8 @@ export async function createTool(req: AuthenticatedRequest, res: Response) {
       action: 'Initial Tool Registration',
       performed_by: req.user?.name || 'System'
     });
+
+    console.log(`[API] Created Tool ${newTool.tool_id} (${newTool.id}) - Name: "${newTool.tool_name}", Qty: ${newTool.available_quantity}, Location: "${newTool.location}"`);
 
     sendInventoryEventNotification({
       action: 'Added',
@@ -303,9 +310,9 @@ export async function createTool(req: AuthenticatedRequest, res: Response) {
       message: 'Tool created successfully',
       tool: newTool
     });
-  } catch (error) {
-    console.error('Create tool error:', error);
-    return res.status(500).json({ message: 'Internal server error creating tool' });
+  } catch (error: any) {
+    console.error('Create tool error:', error?.message || error);
+    return res.status(500).json({ message: error?.message || 'Internal server error creating tool' });
   }
 }
 
@@ -340,7 +347,7 @@ export async function updateTool(req: AuthenticatedRequest, res: Response) {
 
       const diff = qtyNum - existing.available_quantity;
       if (diff !== 0) {
-        db.createInventoryTransaction({
+        await db.createInventoryTransaction({
           request_id: 'SYSTEM',
           item_type: 'Tool',
           item_id: existing.tool_id,
@@ -354,9 +361,11 @@ export async function updateTool(req: AuthenticatedRequest, res: Response) {
       updates.quantity = qtyNum;
     }
 
-    const updated = db.updateTool(id, updates);
+    const updated = await db.updateTool(id, updates);
 
     if (updated) {
+      console.log(`[API] Updated Tool ${id} (${updated.tool_id}) - Qty: ${updated.available_quantity}, Location: "${updated.location}"`);
+
       sendInventoryEventNotification({
         action: 'Edited',
         itemType: 'Tool',
@@ -382,9 +391,9 @@ export async function updateTool(req: AuthenticatedRequest, res: Response) {
       message: 'Tool updated successfully',
       tool: updated
     });
-  } catch (error) {
-    console.error('Update tool error:', error);
-    return res.status(500).json({ message: 'Internal server error updating tool' });
+  } catch (error: any) {
+    console.error('Update tool error:', error?.message || error);
+    return res.status(500).json({ message: error?.message || 'Internal server error updating tool' });
   }
 }
 
@@ -401,7 +410,8 @@ export async function deleteTool(req: AuthenticatedRequest, res: Response) {
       return res.status(404).json({ message: 'Tool not found' });
     }
 
-    db.deleteTool(id);
+    await db.deleteTool(id);
+    console.log(`[API] Deleted Tool ${id} (${tool.tool_id})`);
 
     sendInventoryEventNotification({
       action: 'Deleted',
@@ -413,9 +423,9 @@ export async function deleteTool(req: AuthenticatedRequest, res: Response) {
     });
 
     return res.status(200).json({ message: 'Tool deleted successfully' });
-  } catch (error) {
-    console.error('Delete tool error:', error);
-    return res.status(500).json({ message: 'Internal server error deleting tool' });
+  } catch (error: any) {
+    console.error('Delete tool error:', error?.message || error);
+    return res.status(500).json({ message: error?.message || 'Internal server error deleting tool' });
   }
 }
 

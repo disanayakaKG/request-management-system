@@ -18,11 +18,26 @@ async function startServer() {
   // Parse JSON bodies
   app.use(express.json());
 
-  // CORS middleware
+  // CORS middleware supporting production Vercel frontend & custom domain
   app.use((req, res, next) => {
-    res.header('Access-Control-Allow-Origin', '*');
+    const origin = req.headers.origin;
+    const allowedOrigins = [
+      'https://request-management-system-one.vercel.app',
+      config.frontendUrl,
+      config.appUrl,
+      'http://localhost:3000',
+      'http://localhost:5000'
+    ].filter(Boolean);
+
+    if (origin && allowedOrigins.includes(origin)) {
+      res.header('Access-Control-Allow-Origin', origin);
+    } else {
+      res.header('Access-Control-Allow-Origin', '*');
+    }
+
     res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
     res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+    res.header('Access-Control-Allow-Credentials', 'true');
     if (req.method === 'OPTIONS') {
       return res.sendStatus(200);
     }
