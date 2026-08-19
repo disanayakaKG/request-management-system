@@ -14,20 +14,21 @@ import { authenticateUser, authorizeInventoryOfficer } from '../middleware/auth'
 
 const router = Router();
 
-// Protect all routes with authentication
+// Protect all routes with authentication and bwarehouseltl@gmail.com inventory authorization
 router.use(authenticateUser as any);
+router.use(authorizeInventoryOfficer as any);
 
 // Materials routes
 router.get('/materials', getMaterials as any);
-router.post('/materials', authorizeInventoryOfficer as any, createMaterial as any);
-router.put('/materials/:id', authorizeInventoryOfficer as any, updateMaterial as any);
-router.delete('/materials/:id', authorizeInventoryOfficer as any, deleteMaterial as any);
+router.post('/materials', createMaterial as any);
+router.put('/materials/:id', updateMaterial as any);
+router.delete('/materials/:id', deleteMaterial as any);
 
 // Tools routes
 router.get('/tools', getTools as any);
-router.post('/tools', authorizeInventoryOfficer as any, createTool as any);
-router.put('/tools/:id', authorizeInventoryOfficer as any, updateTool as any);
-router.delete('/tools/:id', authorizeInventoryOfficer as any, deleteTool as any);
+router.post('/tools', createTool as any);
+router.put('/tools/:id', updateTool as any);
+router.delete('/tools/:id', deleteTool as any);
 
 // Inventory transactions history log
 router.get('/transactions', getInventoryTransactions as any);

@@ -21,6 +21,7 @@ import { motion, AnimatePresence } from 'motion/react';
 interface RequestDetailProps {
   request: Request;
   role: 'User' | 'Inventory Officer' | 'Admin';
+  userEmail?: string;
   onStatusChange: (id: string, nextStatus: RequestStatus, comments: string) => Promise<void>;
   onAddComment: (id: string, comments: string) => Promise<void>;
   onDeleteRequest: (id: string) => Promise<void>;
@@ -31,12 +32,14 @@ interface RequestDetailProps {
 export default function RequestDetail({
   request,
   role,
+  userEmail,
   onStatusChange,
   onAddComment,
   onDeleteRequest,
   onComplete,
   onRefreshData
 }: RequestDetailProps) {
+  const isInventoryAuthorized = userEmail?.toLowerCase() === 'bwarehouseltl@gmail.com';
   const [timeline, setTimeline] = useState<ActivityLog[]>([]);
   const [assignedMaterials, setAssignedMaterials] = useState<RequestMaterial[]>([]);
   const [assignedTools, setAssignedTools] = useState<RequestTool[]>([]);
@@ -294,7 +297,7 @@ export default function RequestDetail({
       )}
 
       {/* Inventory Officer Workflow: Assign Materials & Tools */}
-      {role === 'Inventory Officer' && request.status === 'Pending Inventory Review' && (
+      {isInventoryAuthorized && request.status === 'Pending Inventory Review' && (
         <div className="bg-amber-500/15 border border-amber-400/30 p-5 rounded-2xl space-y-4 backdrop-blur-md">
           <div className="flex items-center space-x-2">
             <Wrench className="h-5 w-5 text-amber-300" />

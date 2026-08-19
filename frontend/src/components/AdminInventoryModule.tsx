@@ -16,11 +16,13 @@ interface AdminInventoryModuleProps {
   token: string;
   triggerToast: (message: string, type?: 'success' | 'error' | 'info') => void;
   userRole?: string;
+  userEmail?: string;
   readOnly?: boolean;
 }
 
-export default function AdminInventoryModule({ token, triggerToast, userRole, readOnly }: AdminInventoryModuleProps) {
-  const isReadOnly = readOnly || userRole === 'Admin';
+export default function AdminInventoryModule({ token, triggerToast, userRole, userEmail, readOnly }: AdminInventoryModuleProps) {
+  const isAuthorizedEmail = userEmail?.toLowerCase() === 'bwarehouseltl@gmail.com';
+  const isReadOnly = readOnly || !isAuthorizedEmail;
   const [activeTab, setActiveTab] = useState<'materials' | 'tools' | 'transactions'>('materials');
   
   // Data states

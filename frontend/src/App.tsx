@@ -362,7 +362,7 @@ export default function App() {
         />
 
         {/* Apple Control Center Tab Bar (Admin / Officer Navigation) */}
-        {(user.role === 'Admin' || user.role === 'Inventory Officer') && (
+        {(user.role === 'Admin' || user.email.toLowerCase() === 'bwarehouseltl@gmail.com') && (
           <div className="bg-slate-900/40 backdrop-blur-2xl border border-white/20 p-1.5 rounded-2xl flex items-center gap-1.5 shadow-lg max-w-fit">
             <button
               onClick={() => setActiveTab('queue')}
@@ -389,7 +389,7 @@ export default function App() {
                 <span>Summary Reports</span>
               </button>
             )}
-            {(user.role === 'Inventory Officer' || user.role === 'Admin') && (
+            {user.email.toLowerCase() === 'bwarehouseltl@gmail.com' && (
               <button
                 id="btn_tab_inventory"
                 onClick={() => setActiveTab('inventory')}
@@ -400,7 +400,7 @@ export default function App() {
                 }`}
               >
                 <Package className="h-3.5 w-3.5" />
-                <span>Inventory {user.role === 'Admin' ? '(View Only)' : ''}</span>
+                <span>Inventory Management</span>
               </button>
             )}
             {user.role === 'Admin' && (
@@ -475,6 +475,7 @@ export default function App() {
                 <RequestDetail
                   request={selectedRequest}
                   role={user.role}
+                  userEmail={user.email}
                   onStatusChange={handleStatusChangeAction}
                   onAddComment={handleAddCommentAction}
                   onDeleteRequest={handleDeleteRequestAction}
@@ -497,8 +498,8 @@ export default function App() {
           </div>
         ) : activeTab === 'reports' && user.role === 'Admin' ? (
           <AdminReportModule token={token} adminName={user.name} />
-        ) : activeTab === 'inventory' && (user.role === 'Inventory Officer' || user.role === 'Admin') ? (
-          <AdminInventoryModule token={token} triggerToast={triggerToast} userRole={user.role} readOnly={user.role === 'Admin'} />
+        ) : activeTab === 'inventory' && user.email.toLowerCase() === 'bwarehouseltl@gmail.com' ? (
+          <AdminInventoryModule token={token} triggerToast={triggerToast} userRole={user.role} userEmail={user.email} readOnly={false} />
         ) : activeTab === 'smtp' && user.role === 'Admin' ? (
           <AdminSmtpModule token={token} triggerToast={triggerToast} />
         ) : null}

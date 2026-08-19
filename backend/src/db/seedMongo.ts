@@ -24,8 +24,8 @@ export async function seedMongoData() {
         },
         {
           id: 'u_officer',
-          name: 'Alex Inventory',
-          email: 'officer@example.com',
+          name: 'Warehouse Officer',
+          email: 'bwarehouseltl@gmail.com',
           password: defaultPasswordHash,
           role: 'Inventory Officer',
           created_at: new Date('2026-07-20T07:30:00Z').toISOString()
@@ -40,6 +40,22 @@ export async function seedMongoData() {
         }
       ]);
       console.log('✅ Seeded default users in MongoDB Atlas');
+    } else {
+      // Ensure bwarehouseltl@gmail.com exists in Atlas if not already created
+      const exists = await UserModel.findOne({ email: 'bwarehouseltl@gmail.com' });
+      if (!exists) {
+        const salt = bcryptjs.genSaltSync(10);
+        const defaultPasswordHash = bcryptjs.hashSync('password123', salt);
+        await UserModel.create({
+          id: 'u_bwarehouse',
+          name: 'Warehouse Officer',
+          email: 'bwarehouseltl@gmail.com',
+          password: defaultPasswordHash,
+          role: 'Inventory Officer',
+          created_at: new Date().toISOString()
+        });
+        console.log('✅ Ensured bwarehouseltl@gmail.com in MongoDB Atlas');
+      }
     }
 
     const requestCount = await RequestModel.countDocuments();

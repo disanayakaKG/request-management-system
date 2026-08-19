@@ -143,8 +143,8 @@ class Database {
       },
       {
         id: 'u_officer',
-        name: 'Alex Inventory',
-        email: 'officer@example.com',
+        name: 'Warehouse Officer',
+        email: 'bwarehouseltl@gmail.com',
         password: defaultPasswordHash,
         role: 'Inventory Officer',
         created_at: new Date('2026-07-20T07:30:00Z').toISOString()
