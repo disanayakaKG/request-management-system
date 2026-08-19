@@ -37,5 +37,7 @@ export const config = {
   },
   appUrl: cleanEnv(process.env.APP_URL) || 'http://localhost:5000',
   frontendUrl: cleanEnv(process.env.FRONTEND_URL) || cleanEnv(process.env.APP_URL) || 'http://localhost:3000',
-  mongoUri: cleanEnv(process.env.MONGODB_URI)
+  mongoUri: cleanEnv(process.env.MONGODB_URI),
+  inventoryEmail: cleanEnv(process.env.INVENTORY_EMAIL) || 'bwarehouseltl@gmail.com',
+  inventoryInitialPassword: cleanEnv(process.env.INVENTORY_INITIAL_PASSWORD) || 'New123456'
 };

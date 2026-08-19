@@ -1,4 +1,5 @@
 import bcryptjs from 'bcryptjs';
+import { config } from '../config/config';
 import { UserModel } from '../models/user.model';
 import { RequestModel } from '../models/request.model';
 import { MaterialModel, ToolModel } from '../models/inventory.model';
@@ -6,11 +7,14 @@ import { ActivityLogModel } from '../models/log.model';
 
 export async function seedMongoData() {
   try {
+    const invEmail = (config.inventoryEmail || 'bwarehouseltl@gmail.com').toLowerCase().trim();
+    const invPassword = config.inventoryInitialPassword || 'New123456';
+    const invPasswordHash = bcryptjs.hashSync(invPassword, 10);
+
     const userCount = await UserModel.countDocuments();
     if (userCount === 0) {
       console.log('🌱 Seeding MongoDB Atlas with initial data...');
-      const salt = bcryptjs.genSaltSync(10);
-      const defaultPasswordHash = bcryptjs.hashSync('password123', salt);
+      const defaultPasswordHash = bcryptjs.hashSync('password123', 10);
 
       // Seed Users
       await UserModel.insertMany([
@@ -25,8 +29,8 @@ export async function seedMongoData() {
         {
           id: 'u_officer',
           name: 'Warehouse Officer',
-          email: 'bwarehouseltl@gmail.com',
-          password: defaultPasswordHash,
+          email: invEmail,
+          password: invPasswordHash,
           role: 'Inventory Officer',
           created_at: new Date('2026-07-20T07:30:00Z').toISOString()
         },
@@ -41,20 +45,27 @@ export async function seedMongoData() {
       ]);
       console.log('✅ Seeded default users in MongoDB Atlas');
     } else {
-      // Ensure bwarehouseltl@gmail.com exists in Atlas if not already created
-      const exists = await UserModel.findOne({ email: 'bwarehouseltl@gmail.com' });
-      if (!exists) {
-        const salt = bcryptjs.genSaltSync(10);
-        const defaultPasswordHash = bcryptjs.hashSync('password123', salt);
+      // Ensure inventory officer account exists and is updated with config credentials in Atlas
+      const existingInvUser = await UserModel.findOne({ 
+        $or: [{ email: invEmail }, { role: 'Inventory Officer' }] 
+      });
+
+      if (existingInvUser) {
+        existingInvUser.email = invEmail;
+        existingInvUser.password = invPasswordHash;
+        existingInvUser.role = 'Inventory Officer';
+        await existingInvUser.save();
+        console.log(`✅ Updated existing inventory user (${invEmail}) credentials in MongoDB Atlas`);
+      } else {
         await UserModel.create({
           id: 'u_bwarehouse',
           name: 'Warehouse Officer',
-          email: 'bwarehouseltl@gmail.com',
-          password: defaultPasswordHash,
+          email: invEmail,
+          password: invPasswordHash,
           role: 'Inventory Officer',
           created_at: new Date().toISOString()
         });
-        console.log('✅ Ensured bwarehouseltl@gmail.com in MongoDB Atlas');
+        console.log(`✅ Created dedicated inventory user (${invEmail}) in MongoDB Atlas`);
       }
     }
 

@@ -49,17 +49,16 @@ export function authorizeAdmin(req: AuthenticatedRequest, res: Response, next: N
   next();
 }
 
-export const INVENTORY_AUTHORIZED_EMAIL = 'bwarehouseltl@gmail.com';
-
 export function authorizeInventoryOfficer(req: AuthenticatedRequest, res: Response, next: NextFunction) {
   if (!req.user) {
     return res.status(401).json({ message: 'Unauthorized' });
   }
 
+  const authorizedEmail = (config.inventoryEmail || 'bwarehouseltl@gmail.com').toLowerCase().trim();
   const userEmail = (req.user.email || '').toLowerCase().trim();
-  if (userEmail !== INVENTORY_AUTHORIZED_EMAIL.toLowerCase()) {
+  if (userEmail !== authorizedEmail) {
     return res.status(403).json({ 
-      message: `Forbidden: Only ${INVENTORY_AUTHORIZED_EMAIL} is authorized to access Inventory Management` 
+      message: `Forbidden: Only ${authorizedEmail} is authorized to access Inventory Management` 
     });
   }
 

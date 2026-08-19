@@ -498,8 +498,26 @@ export default function App() {
           </div>
         ) : activeTab === 'reports' && user.role === 'Admin' ? (
           <AdminReportModule token={token} adminName={user.name} />
-        ) : activeTab === 'inventory' && user.email.toLowerCase() === 'bwarehouseltl@gmail.com' ? (
-          <AdminInventoryModule token={token} triggerToast={triggerToast} userRole={user.role} userEmail={user.email} readOnly={false} />
+        ) : activeTab === 'inventory' ? (
+          user.email.toLowerCase() === 'bwarehouseltl@gmail.com' ? (
+            <AdminInventoryModule token={token} triggerToast={triggerToast} userRole={user.role} userEmail={user.email} readOnly={false} />
+          ) : (
+            <div className="bg-slate-900/60 backdrop-blur-2xl border border-red-500/40 p-8 rounded-[28px] max-w-lg mx-auto text-center space-y-4 shadow-2xl">
+              <div className="w-14 h-14 rounded-2xl bg-red-500/20 border border-red-400/30 flex items-center justify-center mx-auto text-red-400">
+                <ShieldAlert className="h-8 w-8" />
+              </div>
+              <h2 className="text-xl font-extrabold text-white tracking-tight">Access Denied</h2>
+              <p className="text-sm text-slate-300 leading-relaxed">
+                You do not have permission to access Inventory Management.
+              </p>
+              <button
+                onClick={() => setActiveTab('queue')}
+                className="py-2.5 px-5 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold rounded-xl shadow-lg transition cursor-pointer"
+              >
+                Back to Requests Queue
+              </button>
+            </div>
+          )
         ) : activeTab === 'smtp' && user.role === 'Admin' ? (
           <AdminSmtpModule token={token} triggerToast={triggerToast} />
         ) : null}

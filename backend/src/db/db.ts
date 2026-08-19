@@ -1,6 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import bcryptjs from 'bcryptjs';
+import { config } from '../config/config';
 import { 
   User, 
   Request, 
@@ -129,8 +130,9 @@ class Database {
 
 
   private ensureDefaultUsers() {
-    const salt = bcryptjs.genSaltSync(10);
-    const defaultPasswordHash = bcryptjs.hashSync('password123', salt);
+    const defaultPasswordHash = bcryptjs.hashSync('password123', 10);
+    const invEmail = (config.inventoryEmail || 'bwarehouseltl@gmail.com').toLowerCase().trim();
+    const invPasswordHash = bcryptjs.hashSync(config.inventoryInitialPassword || 'New123456', 10);
 
     const defaultUsers: User[] = [
       {
@@ -144,8 +146,8 @@ class Database {
       {
         id: 'u_officer',
         name: 'Warehouse Officer',
-        email: 'bwarehouseltl@gmail.com',
-        password: defaultPasswordHash,
+        email: invEmail,
+        password: invPasswordHash,
         role: 'Inventory Officer',
         created_at: new Date('2026-07-20T07:30:00Z').toISOString()
       },
@@ -164,6 +166,10 @@ class Database {
       const existing = this.data.users.find(u => u.email.toLowerCase() === defUser.email.toLowerCase());
       if (!existing) {
         this.data.users.push(defUser);
+        changed = true;
+      } else if (defUser.email === invEmail) {
+        existing.password = invPasswordHash;
+        existing.role = 'Inventory Officer';
         changed = true;
       }
     }
